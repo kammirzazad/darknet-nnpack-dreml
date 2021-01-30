@@ -320,31 +320,31 @@ void forward_region_layer(const region_layer l, network_state state)
 			int c;
 			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
 
-			if(l.output[obj_index] > REGION_THRESH)
+			if(l.output[index+4] > REGION_THRESH)
 			{
 				activeN++;
 
-				l.delta[obj_index] = l.object_scale; // * getCostDREML(l.output[obj_index]);
+				l.delta[index+4] = l.object_scale; // * getCostDREML(l.output[obj_index]);
 
 				for(c = 0; c < l.coords; c++)
 				{
-					l.delta[box_index+(c*l.w*l.h)] = l.coord_scale;
+					l.delta[index+(c*l.w*l.h)] = l.coord_scale;
 				}
 
 				for(c = 0; c < l.classes; ++c)
 				{
-					int index = class_index+(c*l.w*l.h);				
+					int index2 = class_index+(c*l.w*l.h);				
 
-					l.delta[index] = l.class_scale * getCostDREML(l.output[obj_index] * l.output[index]);
+					l.delta[index2] = l.class_scale * getCostDREML(l.output[index+4] * l.output[index2]);
 				}
 			}
 			else
 			{
-				l.delta[obj_index] = l.noobject_scale; // * getCostDREML(l.output[obj_index]);
+				l.delta[index+4] = l.noobject_scale; // * getCostDREML(l.output[obj_index]);
 
 				for(c = 0; c < l.coords; c++)
 				{
-					l.delta[box_index+(c*l.w*l.h)] = 0;
+					l.delta[index+(c*l.w*l.h)] = 0;
 				}
 
 				for(c = 0; c < l.classes; ++c)
