@@ -1494,7 +1494,10 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
             float *b = state.workspace;
             float *c = l.weight_updates + j*l.nweights / l.groups;
 
+	    #ifndef DYNAMIC_FMAP_PRUNING
             float *im = state.input + (i*l.groups + j)* (l.c / l.groups)*l.h*l.w;
+
+            printf("calculating weight updates...\n");
 
             //im2col_cpu(im, l.c / l.groups, l.h, l.w, l.size, l.stride, l.pad, b);
             im2col_cpu_ext(
@@ -1508,6 +1511,7 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
                 b);                 // output
 
             gemm(0, 1, m, n, k, 1, a, k, b, k, 1, c, n);
+            #endif
 
             if (state.delta) {
                 a = l.weights + j*l.nweights / l.groups;

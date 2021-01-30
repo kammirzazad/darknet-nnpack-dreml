@@ -177,6 +177,24 @@ static int entry_index(layer l, int batch, int location, int entry)
     return batch*l.outputs + n*l.w*l.h*(l.coords + l.classes + 1) + entry*l.w*l.h + loc;
 }
 
+float getCostDREML(float output)
+{
+    //return 1.0;
+    return output;
+    //return (1 - abs((2*output)-1));
+
+    if(output > REGION_THRESH)
+    {
+	return 1.0;
+	//return /* 2*(REGION_THRESH-output) */ + 1.0;
+    }
+    else
+    {
+	return 0.0;
+	//return /* 2*(REGION_THRESH-output) */ - 1.0;
+    }
+}
+
 void softmax_tree(float *input, int batch, int inputs, float temp, tree *hierarchy, float *output);
 void forward_region_layer(const region_layer l, network_state state)
 {
@@ -251,6 +269,11 @@ void forward_region_layer(const region_layer l, network_state state)
         }
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
+
+		#ifdef	CUSTOM_BACKPROP
+		int activeN = 0;
+		#endif
+
                 for (n = 0; n < l.n; ++n) {
                     int index = size*(j*l.w*l.n + i*l.n + n) + b*l.outputs;
                     box pred = get_region_box(l.output, l.biases, n, index, i, j, l.w, l.h);
@@ -292,7 +315,69 @@ void forward_region_layer(const region_layer l, network_state state)
                         }
                         delta_region_box(truth, l.output, l.biases, n, index, i, j, l.w, l.h, l.delta, .01);
                     }
+
+			#ifdef	CUSTOM_BACKPROP
+			int c;
+			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+
+			if(l.output[obj_index] > REGION_THRESH)
+			{
+				activeN++;
+
+				l.delta[obj_index] = l.object_scale; // * getCostDREML(l.output[obj_index]);
+
+				for(c = 0; c < l.coords; c++)
+				{
+					l.delta[box_index+(c*l.w*l.h)] = l.coord_scale;
+				}
+
+				for(c = 0; c < l.classes; ++c)
+				{
+					int index = class_index+(c*l.w*l.h);				
+
+					l.delta[index] = l.class_scale * getCostDREML(l.output[obj_index] * l.output[index]);
+				}
+			}
+			else
+			{
+				l.delta[obj_index] = l.noobject_scale; // * getCostDREML(l.output[obj_index]);
+
+				for(c = 0; c < l.coords; c++)
+				{
+					l.delta[box_index+(c*l.w*l.h)] = 0;
+				}
+
+				for(c = 0; c < l.classes; ++c)
+				{
+					l.delta[class_index+(c*l.w*l.h)] = 0;
+				}
+			}
+			#endif
                 }
+
+
+		#ifdef	CUSTOM_BACKPROP
+		/*
+		if(activeN>0)
+		continue;
+		for (n = 0; n < l.n; ++n) 
+		{
+			int c;
+			int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
+			int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords);
+			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+			l.delta[obj_index] = 0;
+			for(c = 0; c < l.coords; c++)
+			{
+				l.delta[box_index+(c*l.w*l.h)] = 0;
+			}
+			for(c = 0; c < l.classes; ++c)
+			{
+				l.delta[class_index+(c*l.w*l.h)] = 0;
+			}
+		}
+		*/
+		#endif
             }
         }
         for(t = 0; t < l.max_boxes; ++t){
@@ -365,6 +450,12 @@ void forward_region_layer(const region_layer l, network_state state)
 
 void backward_region_layer(const region_layer l, network_state state)
 {
+    int b;
+    int size = l.coords + l.classes + 1;
+    for (b = 0; b < l.batch*l.n; ++b){
+	int index = (b*size + 4)*l.w*l.h;
+	gradient_array(l.output + index, l.w*l.h, LOGISTIC, l.delta + index);
+    }
     axpy_cpu(l.batch*l.inputs, 1, l.delta, 1, state.delta, 1);
 }
 

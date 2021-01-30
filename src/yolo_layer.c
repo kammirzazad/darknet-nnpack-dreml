@@ -350,6 +350,11 @@ void forward_yolo_layer(const layer l, network_state state)
     for (b = 0; b < l.batch; ++b) {
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
+
+		#ifdef	CUSTOM_BACKPROP
+		int activeN = 0;
+		#endif
+
                 for (n = 0; n < l.n; ++n) {
                     int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
                     box pred = get_yolo_box(l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, state.net.w, state.net.h, l.w*l.h);
@@ -400,7 +405,79 @@ void forward_yolo_layer(const layer l, network_state state)
                         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
                         delta_yolo_box(truth, l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, state.net.w, state.net.h, l.delta, (2 - truth.w*truth.h), l.w*l.h, l.iou_normalizer * class_multiplier, l.iou_loss, 1, l.max_delta);
                     }
+
+			#ifdef	CUSTOM_BACKPROP
+			int c;
+			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+
+			if(l.output[obj_index] > 0.5)
+			{
+				l.delta[obj_index] = l.noobject_scale * l.output[obj_index];
+
+				//printf("@@ %i %i %i %f\n",i,j,n,l.output[obj_index]);
+				activeN++;
+
+				for(c = 0; c < l.coords; c++)
+				{
+					l.delta[box_index+(c*l.w*l.h)] *= -1;
+				}
+
+				for(c = 0; c < l.classes; ++c)
+				{
+					int index = class_index+(c*l.w*l.h);
+
+					float prob = l.output[obj_index] * l.output[index];
+
+					if(prob > 0.5) //FIXME: Hardcoded by Kamyar for YOLOv2
+					{				
+						//printf("@@@ %i %f\n",c,l.output[obj_index] * l.output[index]);
+						l.delta[index] = l.class_scale * l.output[index];
+					}
+					else
+					{
+						l.delta[index] = 0; //l.class_scale * (0 - l.output[index]);
+					}
+				}
+			}
+			else
+			{
+				l.delta[obj_index] = 0;
+
+				for(c = 0; c < l.coords; c++)
+				{
+					l.delta[box_index+(c*l.w*l.h)] = 0;
+				}
+
+				for(c = 0; c < l.classes; ++c)
+				{
+					l.delta[class_index+(c*l.w*l.h)] = 0;
+				}
+			}
+			#endif
                 }
+
+		#ifdef	CUSTOM_BACKPROP
+		/*
+		if(activeN>0)
+		continue;
+		for (n = 0; n < l.n; ++n) 
+		{
+			int c;
+			int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
+			int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords);
+			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+			l.delta[obj_index] = 0;
+			for(c = 0; c < l.coords; c++)
+			{
+				l.delta[box_index+(c*l.w*l.h)] = 0;
+			}
+			for(c = 0; c < l.classes; ++c)
+			{
+				l.delta[class_index+(c*l.w*l.h)] = 0;
+			}
+		}
+		*/
+		#endif
             }
         }
         for (t = 0; t < l.max_boxes; ++t) {
