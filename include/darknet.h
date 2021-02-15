@@ -35,6 +35,7 @@
 #endif
 #endif
 
+#define IMG_SEG
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
 #define	REGION_THRESH 0.5
@@ -744,15 +745,15 @@ typedef struct network_state {
     network net;
 } network_state;
 
-//typedef struct {
-//    int w;
-//    int h;
-//    float scale;
-//    float rad;
-//    float dx;
-//    float dy;
-//    float aspect;
-//} augment_args;
+typedef struct {
+    int w;
+    int h;
+    float scale;
+    float rad;
+    float dx;
+    float dy;
+    float aspect;
+} augment_args;
 
 // image.h
 typedef struct image {
@@ -941,6 +942,7 @@ LIB_API image load_image_color(char *filename, int w, int h);
 LIB_API void free_image(image m);
 LIB_API image crop_image(image im, int dx, int dy, int w, int h);
 LIB_API image resize_min(image im, int min);
+LIB_API image mask_to_rgb(image mask);
 
 // layer.h
 LIB_API void free_layer_custom(layer l, int keep_cudnn_desc);
@@ -982,6 +984,9 @@ void show_total_time();
 
 // gemm.h
 LIB_API void init_cpu();
+
+
+LIB_API int *read_intlist(char *s, int *n, int d);
 
 #ifdef __cplusplus
 }

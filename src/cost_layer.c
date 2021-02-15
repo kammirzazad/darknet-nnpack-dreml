@@ -9,6 +9,7 @@
 
 COST_TYPE get_cost_type(char *s)
 {
+    if (strcmp(s, "seg")==0) return SEG;
     if (strcmp(s, "sse")==0) return SSE;
     if (strcmp(s, "masked")==0) return MASKED;
     if (strcmp(s, "smooth")==0) return SMOOTH;
@@ -19,6 +20,8 @@ COST_TYPE get_cost_type(char *s)
 char *get_cost_string(COST_TYPE a)
 {
     switch(a){
+        case SEG:
+            return "seg";
         case SSE:
             return "sse";
         case MASKED:

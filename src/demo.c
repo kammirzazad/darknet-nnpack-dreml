@@ -31,7 +31,18 @@ static network net;
 static image in_s ;
 static image det_s;
 
+/*
+static image buff [3];
+static image buff_letter[3];
+static int buff_index = 0;
+*/
+
 static cap_cv *cap;
+/*
+static CvCapture * cap;	//static void * cap;
+static IplImage  * ipl;
+*/
+
 static float fps = 0;
 static float demo_thresh = 0;
 static int demo_ext_output = 0;
@@ -67,8 +78,40 @@ void *fetch_in_thread(void *ptr)
     }
     //in_s = resize_image(in, net.w, net.h);
 
+/*
+    int status = fill_image_from_stream(cap, buff[buff_index]);
+    letterbox_image_into(buff[buff_index], net->w, net->h, buff_letter[buff_index]);
+    if(status == 0) demo_done = 1;
+*/
+
     return 0;
 }
+
+/*
+void *display_in_thread(void *ptr)
+{
+    //int c = show_image(buff[(buff_index + 1)%3], "Demo", 1);
+    show_image_cv(buff[(buff_index + 1)%3], "Demo", ipl);
+    int c = cvWaitKey(1);
+
+    if (c != -1) c = c%256;
+    if (c == 27) {
+        demo_done = 1;
+        return 0;
+    } else if (c == 82) {
+        demo_thresh += .02;
+    } else if (c == 84) {
+        demo_thresh -= .02;
+        if(demo_thresh <= .02) demo_thresh = .02;
+    } else if (c == 83) {
+        demo_hier += .02;
+    } else if (c == 81) {
+        demo_hier -= .02;
+        if(demo_hier <= .0) demo_hier = .0;
+    }
+    return 0;
+}
+*/
 
 void *detect_in_thread(void *ptr)
 {
@@ -129,9 +172,24 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     if(filename){
         printf("video file: %s\n", filename);
         cap = get_capture_video_stream(filename);
+	//cap = cvCaptureFromFile(filename);
     }else{
         printf("Webcam index: %d\n", cam_index);
         cap = get_capture_webcam(cam_index);
+
+        /*
+        cap = cvCaptureFromCAM(cam_index);
+
+        if(w){
+            cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_WIDTH, w);
+        }
+        if(h){
+            cvSetCaptureProperty(cap, CV_CAP_PROP_FRAME_HEIGHT, h);
+        }
+        if(frames){
+            cvSetCaptureProperty(cap, CV_CAP_PROP_FPS, frames);
+        }
+        */
     }
 
     if (!cap) {

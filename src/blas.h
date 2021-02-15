@@ -109,6 +109,8 @@ void reorg_ongpu(float *x, int w, int h, int c, int batch, int stride, int forwa
 
 void softmax_gpu_new_api(float *input, int n, int batch, int batch_offset, int groups, int group_offset, int stride, float temp, float *output);
 void softmax_gpu(float *input, int n, int offset, int groups, float temp, float *output);
+void softmax_instance_gpu(float *input, int n, int batch, int batch_offset, int groups, int group_offset, int stride, float temp, float *output);
+void softmax_instance_folder_gpu(float *input, int n, int batch, int batch_offset, int c, int h, int w, float temp, float *output);
 void adam_gpu(int n, float *x, float *m, float *v, float B1, float B2, float rate, float eps, int t);
 void adam_update_gpu(float *w, float *d, float *m, float *v, float B1, float B2, float eps, float decay, float rate, int n, int batch, int t);
 

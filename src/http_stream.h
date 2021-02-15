@@ -2,6 +2,10 @@
 #define HTTP_STREAM_H
 #include "darknet.h"
 
+#ifdef OPENCV
+#include "image_opencv.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

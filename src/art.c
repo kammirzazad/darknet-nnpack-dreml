@@ -11,6 +11,9 @@
 #include <sys/time.h>
 #endif
 
+#ifdef OPENCV
+#include "image_opencv.h"
+#endif
 
 void demo_art(char *cfgfile, char *weightfile, int cam_index)
 {

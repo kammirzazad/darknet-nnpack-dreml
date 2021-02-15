@@ -10,6 +10,8 @@
 #define M_PI       3.14159265358979323846   // pi
 #endif
 
+#define TWO_PI 6.2831853071795864769252866f
+
 #ifdef __cplusplus
 extern "C" {
 #endif

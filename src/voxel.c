@@ -3,6 +3,10 @@
 #include "utils.h"
 #include "parser.h"
 
+#ifdef OPENCV
+#include "image_opencv.h"
+#endif
+
 void extract_voxel(char *lfile, char *rfile, char *prefix)
 {
 #ifdef OPENCV

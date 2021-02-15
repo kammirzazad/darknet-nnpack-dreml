@@ -17,6 +17,7 @@
 #include "detection_layer.h"
 #include "dropout_layer.h"
 #include "gru_layer.h"
+#include "iseg_layer.h"
 #include "list.h"
 #include "local_layer.h"
 #include "lstm_layer.h"
@@ -89,6 +90,7 @@ LAYER_TYPE string_to_layer_type(char * type)
     if (strcmp(type, "[route]")==0) return ROUTE;
     if (strcmp(type, "[upsample]") == 0) return UPSAMPLE;
     if (strcmp(type, "[empty]") == 0) return EMPTY;
+    if (strcmp(type, "[iseg]")==0) return ISEG;
     return BLANK;
 }
 
@@ -334,7 +336,7 @@ connected_layer parse_connected(list *options, size_params params)
 softmax_layer parse_softmax(list *options, size_params params)
 {
 	int groups = option_find_int_quiet(options, "groups", 1);
-	softmax_layer layer = make_softmax_layer(params.batch, params.inputs, groups);
+	softmax_layer layer = make_softmax_layer(params.batch, params.inputs, groups, params.w, params.h, params.c);
 	layer.temperature = option_find_float_quiet(options, "temperature", 1);
 	char *tree_file = option_find_str(options, "tree", 0);
 	if (tree_file) layer.softmax_tree = read_tree(tree_file);
@@ -562,6 +564,15 @@ layer parse_gaussian_yolo(list *options, size_params params) // Gaussian_YOLOv3
             a = strchr(a, ',') + 1;
         }
     }
+    return l;
+}
+
+layer parse_iseg(list *options, size_params params)
+{
+    int classes = option_find_int(options, "classes", 20);
+    int ids = option_find_int(options, "ids", 32);
+    layer l = make_iseg_layer(params.batch, params.w, params.h, classes, ids);
+    assert(l.outputs == params.inputs);
     return l;
 }
 
@@ -1249,6 +1260,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         }else if (lt == GAUSSIAN_YOLO) {
             l = parse_gaussian_yolo(options, params);
             l.keep_delta_gpu = 1;
+        }else if(lt == ISEG){
+            l = parse_iseg(options, params);            
         }else if(lt == DETECTION){
             l = parse_detection(options, params);
         }else if(lt == SOFTMAX){

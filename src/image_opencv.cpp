@@ -527,12 +527,12 @@ extern "C" void release_video_writer(write_cv **output_video_writer)
     }
 }
 
-/*
+
 extern "C" void *open_video_stream(const char *f, int c, int w, int h, int fps)
 {
-    VideoCapture *cap;
-    if(f) cap = new VideoCapture(f);
-    else cap = new VideoCapture(c);
+    cv::VideoCapture *cap;
+    if(f) cap = new cv::VideoCapture(f);
+    else cap = new cv::VideoCapture(c);
     if(!cap->isOpened()) return 0;
     if(w) cap->set(CV_CAP_PROP_FRAME_WIDTH, w);
     if(h) cap->set(CV_CAP_PROP_FRAME_HEIGHT, w);
@@ -543,13 +543,14 @@ extern "C" void *open_video_stream(const char *f, int c, int w, int h, int fps)
 
 extern "C" image get_image_from_stream(void *p)
 {
-    VideoCapture *cap = (VideoCapture *)p;
-    Mat m;
+    cv::VideoCapture *cap = (cv::VideoCapture *)p;
+    cv::Mat m;
     *cap >> m;
     if(m.empty()) return make_empty_image(0,0,0);
     return mat_to_image(m);
 }
 
+/*
 extern "C" int show_image_cv(image im, const char* name, int ms)
 {
     Mat m = image_to_mat(im);
@@ -856,6 +857,30 @@ extern "C" void save_cv_jpg(mat_cv *img_src, const char *name)
 {
     cv::Mat* img = (cv::Mat*)img_src;
     save_mat_jpg(*img, name);
+}
+// ----------------------------------------
+
+extern "C" void save_image_jpg_cv(image p, const char *name)
+{
+    image copy = copy_image(p);
+    if(p.c == 3) rgbgr_image(copy);
+    int x,y,k;
+
+    char buff[256];
+    sprintf(buff, "%s.jpg", name);
+
+    IplImage *disp = cvCreateImage(cvSize(p.w,p.h), IPL_DEPTH_8U, p.c);
+    int step = disp->widthStep;
+    for(y = 0; y < p.h; ++y){
+        for(x = 0; x < p.w; ++x){
+            for(k= 0; k < p.c; ++k){
+                disp->imageData[y*step + x*p.c + k] = (unsigned char)(get_pixel(copy,x,y,k)*255);
+            }
+        }
+    }
+    cvSaveImage(buff, disp,0);
+    cvReleaseImage(&disp);
+    free_image(copy);
 }
 // ----------------------------------------
 
@@ -1339,7 +1364,34 @@ void show_opencv_info()
         << std::endl;
 }
 
+/*
+extern "C" void ipl_into_image(IplImage* src, image im)
+{
+    unsigned char *data = (unsigned char *)src->imageData;
+    int h = src->height;
+    int w = src->width;
+    int c = src->nChannels;
+    int step = src->widthStep;
+    int i, j, k;
 
+    for(i = 0; i < h; ++i){
+        for(k= 0; k < c; ++k){
+            for(j = 0; j < w; ++j){
+                im.data[k*w*h + i*w + j] = data[i*step + j*c + k]/255.;
+            }
+        }
+    }
+}
+
+extern "C" int fill_image_from_stream(CvCapture *cap, image im)
+{
+    IplImage* src = cvQueryFrame(cap);
+    if (!src) return 0;
+    ipl_into_image(src, im);
+    rgbgr_image(im);
+    return 1;
+}
+*/
 
 }   // extern "C"
 #else  // OPENCV

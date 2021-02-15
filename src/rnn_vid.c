@@ -5,6 +5,8 @@
 #include "blas.h"
 
 #ifdef OPENCV
+#include "image_opencv.h"
+
 void reconstruct_picture(network net, float *features, image recon, image update, float rate, float momentum, float lambda, int smooth_size, int iters);
 
 

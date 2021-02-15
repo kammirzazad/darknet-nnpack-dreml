@@ -8,8 +8,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "image_opencv.h"
-
 #include "box.h"
 #ifdef __cplusplus
 extern "C" {
@@ -29,6 +27,7 @@ void draw_box_width(image a, int x1, int y1, int x2, int y2, int w, float r, flo
 void draw_bbox(image a, box bbox, int w, float r, float g, float b);
 void draw_label(image a, int r, int c, image label, const float *rgb);
 void write_label(image a, int r, int c, image *characters, char *string, float *rgb);
+void save_detections(image im, detection *dets, int num, float thresh, char **names, int classes);
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, image **labels, int classes);
 void draw_detections_v3(image im, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output);
 image image_distance(image a, image b);
@@ -36,6 +35,7 @@ void scale_image(image m, float s);
 // image crop_image(image im, int dx, int dy, int w, int h);
 image random_crop_image(image im, int w, int h);
 image random_augment_image(image im, float angle, float aspect, int low, int high, int size);
+augment_args random_augment_args(image im, float angle, float aspect, int low, int high, int w, int h);
 void random_distort_image(image im, float hue, float saturation, float exposure);
 //LIB_API image resize_image(image im, int w, int h);
 //LIB_API void copy_image_from_bytes(image im, char *pdata);
@@ -47,6 +47,8 @@ image resize_max(image im, int max);
 void translate_image(image m, float s);
 void normalize_image(image p);
 image rotate_image(image m, float rad);
+image rotate_crop_image(image im, float rad, float s, int w, int h, float dx, float dy, float aspect);
+image rotate_crop_image_seg(image im, float rad, float s, int w, int h, float dx, float dy, float aspect);
 void rotate_image_cw(image im, int times);
 void embed_image(image source, image dest, int dx, int dy);
 void saturate_image(image im, float sat);
@@ -87,6 +89,7 @@ image load_image_stb_resize(char *filename, int w, int h, int c);
 //LIB_API image load_image_color(char *filename, int w, int h);
 image **load_alphabet();
 
+
 //float get_pixel(image m, int x, int y, int c);
 //float get_pixel_extend(image m, int x, int y, int c);
 //void set_pixel(image m, int x, int y, int c, float val);
@@ -94,6 +97,8 @@ image **load_alphabet();
 float bilinear_interpolate(image im, float x, float y, int c);
 
 image get_image_layer(image m, int l);
+
+void save_img_seg(image mask, const char* fn); // Added by Kamyar to enable emuDREML's use
 
 //LIB_API void free_image(image m);
 void test_resize(char *filename);

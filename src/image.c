@@ -20,6 +20,10 @@
 #include "stb_image_write.h"
 #endif
 
+#ifdef OPENCV
+#include "image_opencv.h"
+#endif
+
 extern int check_mistakes;
 //int windows = 0;
 
@@ -35,6 +39,45 @@ float get_color(int c, int x, int max)
     //printf("%f\n", r);
     return r;
 }
+
+void save_img_seg(image mask, const char* fn)
+{
+    assert(mask.c==1);
+
+    FILE* fh = fopen(fn,"w");
+
+    for(int j=0; j<mask.h; j++)
+    {
+        for(int i=0; i<mask.w; i++)
+            fprintf(fh, "%i ", (int)mask.data[(j*mask.w)+i]);
+
+        fprintf(fh,"\n");
+    }
+
+    fclose(fh);
+
+    printf("Saved segmentation results to %s (%i,%i)\n",fn,mask.w,mask.h);
+}
+
+image mask_to_rgb(image mask)
+{
+    int n = mask.c;
+    image im = make_image(mask.w, mask.h, 3);
+    int i, j;
+    for(j = 0; j < n; ++j){
+        int offset = j*123457 % n;
+        float red = get_color(2,offset,n);
+        float green = get_color(1,offset,n);
+        float blue = get_color(0,offset,n);
+        for(i = 0; i < im.w*im.h; ++i){
+            im.data[i + 0*im.w*im.h] += mask.data[j*im.h*im.w + i]*red;
+            im.data[i + 1*im.w*im.h] += mask.data[j*im.h*im.w + i]*green;
+            im.data[i + 2*im.w*im.h] += mask.data[j*im.h*im.w + i]*blue;
+        }
+    }
+    return im;
+}
+
 
 static float get_pixel(image m, int x, int y, int c)
 {
@@ -439,6 +482,47 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
     free(selected_detections);
 }
 
+void save_detections(image im, detection *dets, int num, float thresh, char **names, int classes)
+{
+    FILE* fh = fopen("mAP_result.txt","w");
+
+    int i,j;
+
+    for(i = 0; i < num; ++i){
+        //char labelstr[4096] = {0};
+        int class = -1;
+        for(j = 0; j < classes; ++j){
+            if (dets[i].prob[j] > thresh){
+                if (class < 0) {
+                    //strcat(labelstr, names[j]);
+                    class = j;
+                } else {
+                    //strcat(labelstr, ", ");
+                    //strcat(labelstr, names[j]);
+                }
+            }
+        }
+        if(class >= 0){
+            box b = dets[i].bbox;
+            //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
+
+            int left  = (b.x-b.w/2.)*im.w;
+            int right = (b.x+b.w/2.)*im.w;
+            int top   = (b.y-b.h/2.)*im.h;
+            int bot   = (b.y+b.h/2.)*im.h;
+
+            if(left < 0) left = 0;
+            if(right > im.w-1) right = im.w-1;
+            if(top < 0) top = 0;
+            if(bot > im.h-1) bot = im.h-1;
+
+            fprintf(fh, "%s %f %i %i %i %i\n", names[class], dets[i].prob[class], left, top, right, bot);
+        }
+    }
+
+    fclose(fh);
+}
+
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, image **alphabet, int classes)
 {
     int i;
@@ -689,9 +773,18 @@ void save_image_png(image im, const char *name)
     sprintf(buff, "%s.png", name);
     unsigned char* data = (unsigned char*)xcalloc(im.w * im.h * im.c, sizeof(unsigned char));
     int i,k;
-    for(k = 0; k < im.c; ++k){
-        for(i = 0; i < im.w*im.h; ++i){
-            data[i*im.c+k] = (unsigned char) (255*im.data[i + k*im.w*im.h]);
+    if(im.c == 1) {
+        for(k = 0; k < im.c; ++k){
+            for(i = 0; i < im.w*im.h; ++i){
+                data[i*im.c+k] = (unsigned char) (im.data[i + k*im.w*im.h]);
+            }
+        }
+    }
+    else {
+        for(k = 0; k < im.c; ++k){
+            for(i = 0; i < im.w*im.h; ++i){
+                data[i*im.c+k] = (unsigned char) (255*im.data[i + k*im.w*im.h]);
+            }
         }
     }
     int success = stbi_write_png(buff, im.w, im.h, im.c, data, im.w*im.c);
@@ -724,14 +817,23 @@ void save_image_options(image im, const char *name, IMTYPE f, int quality)
     if (!success) fprintf(stderr, "Failed to write image %s\n", buff);
 }
 
-void save_image(image im, const char *name)
-{
-    save_image_options(im, name, JPG, 80);
-}
-
 void save_image_jpg(image p, const char *name)
 {
+#ifndef OPENCV
     save_image_options(p, name, JPG, 80);
+#else
+    save_image_jpg_cv(p,name);
+#endif
+}
+
+void save_image(image im, const char *name)
+{
+    //save_image_options(im, name, JPG, 80);
+#ifdef OPENCV
+    save_image_jpg(im, name);
+#else
+    save_image_png(im, name);
+#endif
 }
 
 void show_image_layers(image p, char *name)
@@ -797,8 +899,25 @@ image float_to_image_scaled(int w, int h, int c, float *data)
 
 image float_to_image(int w, int h, int c, float *data)
 {
-    image out = make_empty_image(w,h,c);
-    out.data = data;
+    //image out = make_empty_image(w,h,c);
+    //out.data = data;
+    printf("c = %d, w = %d, h = %d\n", c, w, h);
+    image out = make_image(w,h,1);
+    for(int ii=0; ii<w*h; ii++){
+        int max_id = 0;
+        float max_value = 0;
+        for(int jj = 0; jj < c; ++jj){
+            if(max_value < data[jj*w*h + ii]){
+                max_value = data[jj*w*h + ii];
+                max_id = jj;
+            }
+        }
+        if(max_value > 0.05){
+            out.data[ii] = (float)max_id;
+        }else{
+            out.data[ii] = 0;
+        }
+    }    
     return out;
 }
 
@@ -815,6 +934,32 @@ image rotate_crop_image(image im, float rad, float s, int w, int h, float dx, fl
                 float rx = cos(rad)*((x - w/2.)/s*aspect + dx/s*aspect) - sin(rad)*((y - h/2.)/s + dy/s) + cx;
                 float ry = sin(rad)*((x - w/2.)/s*aspect + dx/s*aspect) + cos(rad)*((y - h/2.)/s + dy/s) + cy;
                 float val = bilinear_interpolate(im, rx, ry, c);
+                set_pixel(rot, x, y, c, val);
+            }
+        }
+    }
+    return rot;
+}
+
+image rotate_crop_image_seg(image im, float rad, float s, int w, int h, float dx, float dy, float aspect)
+{
+    int x, y, c;
+    float cx = im.w/2.;
+    float cy = im.h/2.;
+    image rot = make_image(w, h, im.c);
+    for(c = 0; c < im.c; ++c){
+        for(y = 0; y < h; ++y){
+            for(x = 0; x < w; ++x){
+                float rx = cos(rad)*((x - w/2.)/s*aspect + dx/s*aspect) - sin(rad)*((y - h/2.)/s + dy/s) + cx;
+                float ry = sin(rad)*((x - w/2.)/s*aspect + dx/s*aspect) + cos(rad)*((y - h/2.)/s + dy/s) + cy;
+                float val = bilinear_interpolate(im, rx, ry, c);
+                //if(val!=0) printf("the value is %f\n",val);
+                //if(val!=0)
+                //{
+                //  val = 0.9995;
+                //}else{
+                //  val = 0.0005;
+                //}
                 set_pixel(rot, x, y, c, val);
             }
         }
@@ -1025,6 +1170,33 @@ image random_crop_image(image im, int w, int h)
     int dy = rand_int(0, im.h - h);
     image crop = crop_image(im, dx, dy, w, h);
     return crop;
+}
+
+augment_args random_augment_args(image im, float angle, float aspect, int low, int high, int w, int h)
+{
+    augment_args a = {0};
+    aspect = rand_scale(aspect);
+    int r = rand_int(low, high);
+    int min = (im.h < im.w*aspect) ? im.h : im.w*aspect;
+    float scale = (float)r / min;
+
+    float rad = rand_uniform(-angle, angle) * TWO_PI / 360.;
+
+    float dx = (im.w*scale/aspect - w) / 2.;
+    float dy = (im.h*scale - w) / 2.;
+    //if(dx < 0) dx = 0;
+    //if(dy < 0) dy = 0;
+    dx = rand_uniform(-dx, dx);
+    dy = rand_uniform(-dy, dy);
+
+    a.rad = rad;
+    a.scale = scale;
+    a.w = w;
+    a.h = h;
+    a.dx = dx;
+    a.dy = dy;
+    a.aspect = aspect;
+    return a;
 }
 
 image random_augment_image(image im, float angle, float aspect, int low, int high, int size)
@@ -1375,6 +1547,18 @@ void test_resize(char *filename)
         show_image(aug, "aug");
         free_image(aug);
 
+	/*
+	int i,j,k;
+        for(k = 0; k < c; ++k){
+            for(j = 0; j < h; ++j){
+	        for(i = 0; i < w; ++i){
+                    int dst_index = i + w*j + w*h*k;
+	            int src_index = k + c*i + c*w*j;
+	            im.data[dst_index] = (float)data[src_index]/255.;
+	        }
+            }
+        }
+	*/
 
         float exposure = 1.15;
         float saturation = 1.15;
@@ -1390,7 +1574,7 @@ void test_resize(char *filename)
         show_image(c, "rand");
         printf("%f %f %f\n", dhue, dsat, dexp);
         free_image(c);
-        wait_until_press_key_cv();
+        wait_until_press_key_cv(); //cvWaitKey(0);
     }
 #endif
 }
@@ -1417,12 +1601,36 @@ image load_image_stb(char *filename, int channels)
     if(channels) c = channels;
     int i,j,k;
     image im = make_image(w, h, c);
+    /*
     for(k = 0; k < c; ++k){
         for(j = 0; j < h; ++j){
             for(i = 0; i < w; ++i){
                 int dst_index = i + w*j + w*h*k;
                 int src_index = k + c*i + c*w*j;
                 im.data[dst_index] = (float)data[src_index]/255.;
+            }
+        }
+    }
+    */
+    if(c==1) {
+        for(k = 0; k < c; ++k) {
+            for(j = 0; j < h; ++j) {
+                for(i = 0; i < w; ++i) {
+                    int dst_index = i + w*j + w*h*k;
+                    int src_index = k + c*i + c*w*j;
+                    im.data[dst_index] = (float)data[src_index]; // /255.;
+                }
+	    }
+        }
+    } 
+    else {
+        for(k = 0; k < c; ++k) {
+            for(j = 0; j < h; ++j) {
+                for(i = 0; i < w; ++i){
+                    int dst_index = i + w*j + w*h*k;
+                    int src_index = k + c*i + c*w*j;
+	            im.data[dst_index] = (float)data[src_index]/255.;
+                }
             }
         }
     }

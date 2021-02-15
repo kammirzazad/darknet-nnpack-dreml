@@ -60,11 +60,15 @@ void resize_region_layer(layer *l, int w, int h)
     l->w = w;
     l->h = h;
 
+    printf("region before: output=%p outputs=%i\n",l->output,l->outputs);
+
     l->outputs = h*w*l->n*(l->classes + l->coords + 1);
     l->inputs = l->outputs;
 
     l->output = (float*)xrealloc(l->output, l->batch * l->outputs * sizeof(float));
     l->delta = (float*)xrealloc(l->delta, l->batch * l->outputs * sizeof(float));
+
+    printf("region after: output=%p outputs=%i\n",l->output,l->outputs);
 
 #ifdef GPU
     if (old_w < w || old_h < h) {

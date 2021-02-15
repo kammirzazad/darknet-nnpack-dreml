@@ -13,6 +13,10 @@
 #include <sys/time.h>
 #endif
 
+#ifdef OPENCV
+#include "image_opencv.h"
+#endif
+
 float validate_classifier_single(char *datacfg, char *filename, char *weightfile, network *existing_net, int topk_custom);
 
 float *get_regression_values(char **labels, int n)

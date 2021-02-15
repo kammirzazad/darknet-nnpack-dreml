@@ -61,8 +61,8 @@ void write_frame_cv(write_cv *output_video_writer, mat_cv *mat);
 void release_video_writer(write_cv **output_video_writer);
 
 
-//void *open_video_stream(const char *f, int c, int w, int h, int fps);
-//image get_image_from_stream(void *p);
+void *open_video_stream(const char *f, int c, int w, int h, int fps);
+image get_image_from_stream(void *p);
 //image load_image_cv(char *filename, int channels);
 //int show_image_cv(image im, const char* name, int ms);
 
@@ -87,6 +87,7 @@ image get_image_from_stream_letterbox(cap_cv *cap, int w, int h, int c, mat_cv**
 // Image Saving
 void save_cv_png(mat_cv *img, const char *name);
 void save_cv_jpg(mat_cv *img, const char *name);
+void save_image_jpg_cv(image p, const char *name);
 
 // Draw Detection
 void draw_detections_cv_v3(mat_cv* show_img, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output);
@@ -112,6 +113,9 @@ image blur_image(image src_img, int ksize);
 void show_acnhors(int number_of_boxes, int num_of_clusters, float *rel_width_height_array, model anchors_data, int width, int height);
 
 void show_opencv_info();
+
+//void ipl_into_image(IplImage* src, image im);
+//int fill_image_from_stream(CvCapture *cap, image im);
 
 #else   // OPENCV
 
