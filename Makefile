@@ -4,6 +4,7 @@ CUDNN_HALF=0
 OPENCV=1
 AVX=0
 OPENMP=0
+LIBA=1
 LIBSO=0
 ZED_CAMERA=0
 NNPACK=0
@@ -48,6 +49,10 @@ OS := $(shell uname)
 VPATH=./src/
 EXEC=darknet
 OBJDIR=./obj/
+
+ifeq ($(LIBA), 1)
+LIBNAMEA=libdarknet.a
+endif
 
 ifeq ($(LIBSO), 1)
 LIBNAMESO=libdarknet.so
@@ -143,7 +148,12 @@ endif
 OBJS = $(addprefix $(OBJDIR), $(OBJ))
 DEPS = $(wildcard src/*.h) Makefile include/darknet.h
 
-all: $(OBJDIR) backup results setchmod $(EXEC) $(LIBNAMESO) $(APPNAMESO)
+all: $(OBJDIR) backup results setchmod $(EXEC) $(LIBNAMESO) $(APPNAMESO) $(LIBNAMEA)
+
+ifeq ($(LIBA), 1)
+$(LIBNAMEA): $(OBJS)
+	$(AR) $(ARFLAGS) $@ $^
+endif
 
 ifeq ($(LIBSO), 1)
 CFLAGS+= -fPIC
@@ -179,4 +189,4 @@ setchmod:
 .PHONY: clean
 
 clean:
-	rm -rf $(OBJS) $(EXEC) $(LIBNAMESO) $(APPNAMESO)
+	rm -rf $(OBJS) $(EXEC) $(LIBNAMESO) $(APPNAMESO) $(LIBNAMEA)
