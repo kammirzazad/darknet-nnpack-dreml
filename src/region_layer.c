@@ -454,12 +454,6 @@ void forward_region_layer(const region_layer l, network_state state)
 
 void backward_region_layer(const region_layer l, network_state state)
 {
-    int b;
-    int size = l.coords + l.classes + 1;
-    for (b = 0; b < l.batch*l.n; ++b){
-	int index = (b*size + 4)*l.w*l.h;
-	gradient_array(l.output + index, l.w*l.h, LOGISTIC, l.delta + index);
-    }
     axpy_cpu(l.batch*l.inputs, 1, l.delta, 1, state.delta, 1);
 }
 
