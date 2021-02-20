@@ -1,11 +1,7 @@
 #include "darknet.h"
 #include "network.h"
-#include "region_layer.h"
-#include "cost_layer.h"
 #include "utils.h"
 #include "parser.h"
-#include "box.h"
-#include "demo.h"
 #include "image.h"
 #include "option_list.h"
 #include <sys/time.h>
@@ -44,7 +40,7 @@ void train_isegmenter(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
     }
     srand(time(0));
     network net = nets[0];
-
+    
     image pred = get_network_image(net);
 
     image embed = pred;
@@ -125,12 +121,12 @@ void train_isegmenter(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
             image prmask = mask_to_rgb(pred);
             image ecopy = copy_image(embed);
             normalize_image2(ecopy);
-            show_image(ecopy, "embed"); //1
+            show_image(ecopy, "embed"); //, 1);
             free_image(ecopy);
 
-            show_image(im, "input"); //1
-            show_image(prmask, "pred"); //1
-            show_image(mask, "truth"); //100
+            show_image(im, "input"); //, 1);
+            show_image(prmask, "pred"); //, 1);
+            show_image(mask, "truth"); //, 100);
             free_image(mask);
             free_image(prmask);
         }
@@ -154,9 +150,7 @@ void train_isegmenter(char *datacfg, char *cfgfile, char *weightfile, int *gpus,
     sprintf(buff, "%s/%s.weights", backup_directory, base);
     save_weights(net, buff);
 
-    for (i = 0; i < ngpus; ++i) free_network(nets[i]);
-    free(nets);    
-    //free_network(net);
+    free_network(net);
     free_ptrs((void**)paths, plist->size);
     free_list(plist);
     free(base);
@@ -191,8 +185,8 @@ void predict_isegmenter(char *datafile, char *cfg, char *weights, char *filename
         image prmask = mask_to_rgb(pred);
         printf("Predicted: %f\n", predictions[0]);
         printf("%s: Predicted in %f seconds.\n", input, sec(clock()-time));
-        show_image(sized, "orig"); //1
-        show_image(prmask, "pred"); //0
+        show_image(sized, "orig"); //, 1);
+        show_image(prmask, "pred"); //, 0);
         free_image(im);
         free_image(sized);
         free_image(prmask);
@@ -209,9 +203,23 @@ void demo_isegmenter(char *datacfg, char *cfg, char *weights, int cam_index, con
     set_batch_network(net, 1);
 
     srand(2222222);
+    #ifdef IMG_SEG
+    CvCapture * cap;
+
+    if(filename){
+	cap = cvCaptureFromFile(filename);
+    }else{
+	cap = cvCaptureFromCAM(cam_index);
+    }
+    #else
     void * cap = open_video_stream(filename, cam_index, 0,0,0);
+    #endif
 
     if(!cap) error("Couldn't connect to webcam.\n");
+    #ifdef IMG_SEG
+    cvNamedWindow("Segmenter", CV_WINDOW_NORMAL);
+    cvResizeWindow("Segmenter", 512, 512);
+    #endif
     float fps = 0;
 
     while(1){
@@ -221,15 +229,15 @@ void demo_isegmenter(char *datacfg, char *cfg, char *weights, int cam_index, con
         image in = get_image_from_stream(cap);
         image in_s = letterbox_image(in, net->w, net->h);
 
-        network_predict(*net, in_s.data);
+        network_predict(net, in_s.data);
 
         printf("\033[2J");
         printf("\033[1;1H");
         printf("\nFPS:%.0f\n",fps);
 
-        image pred = get_network_image(*net);
+        image pred = get_network_image(net);
         image prmask = mask_to_rgb(pred);
-        show_image(prmask, "Segmenter"); //10
+        show_image(prmask, "Segmenter"); //, 10);
 
         free_image(in_s);
         free_image(in);
