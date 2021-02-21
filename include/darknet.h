@@ -35,7 +35,7 @@
 #endif
 #endif
 
-#define IMG_SEG
+//#define IMG_SEG
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
 #define	REGION_THRESH 0.5
