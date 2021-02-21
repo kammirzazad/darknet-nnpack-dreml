@@ -38,7 +38,7 @@
 //#define IMG_SEG
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
-#define	REGION_THRESH 0.5
+#define	DET_THRESH 0.5
 
 #define SECRET_NUM -1234
 

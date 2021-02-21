@@ -181,23 +181,52 @@ static int entry_index(layer l, int batch, int location, int entry)
     return batch*l.outputs + n*l.w*l.h*(l.coords + l.classes + 1) + entry*l.w*l.h + loc;
 }
 
-float getCostDREML(float output)
+#ifdef CUSTOM_BACKPROP
+void  adjustRegionLossesDREML(const region_layer l, int index)
 {
-    //return 1.0;
-    return output;
-    //return (1 - abs((2*output)-1));
+    int coord_id, class_id;
 
-    if(output > REGION_THRESH)
+    if(l.output[index + 4] > DET_THRESH)
     {
-	return 1.0;
-	//return /* 2*(REGION_THRESH-output) */ + 1.0;
+        l.delta[index + 4] = l.object_scale * logistic_gradient(l.output[index + 4]);
+
+        for(coord_id = 0; coord_id < l.coords; coord_id++)
+        {	   
+            l.delta[index + coord_id] = l.coord_scale;
+
+            // only first two coordinates go through logistic
+            if(coord_id < 2)
+            {
+                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]); 
+            }
+        }
+
+        for(class_id = 0; class_id < l.classes; ++class_id)
+        {
+            int index2 = index + l.coords + 1 + class_id;
+
+            // softmax gradient is itself
+            l.delta[index2] = l.class_scale * l.output[index2];
+        }
     }
     else
     {
-	return 0.0;
-	//return /* 2*(REGION_THRESH-output) */ - 1.0;
+        l.delta[index + 4] = l.noobject_scale * logistic_gradient(l.output[index + 4]); 
+
+        for(coord_id = 0; coord_id < l.coords; coord_id++)
+        {
+            l.delta[index + coord_id] = 0;
+        }
+
+        for(class_id = 0; class_id < l.classes; ++class_id)
+        {
+            int index2 = index + l.coords + 1 + class_id;
+
+            l.delta[index2] = 0;
+        }
     }
 }
+#endif
 
 void softmax_tree(float *input, int batch, int inputs, float temp, tree *hierarchy, float *output);
 void forward_region_layer(const region_layer l, network_state state)
@@ -274,10 +303,6 @@ void forward_region_layer(const region_layer l, network_state state)
         for (j = 0; j < l.h; ++j) {
             for (i = 0; i < l.w; ++i) {
 
-		#ifdef	CUSTOM_BACKPROP
-		int activeN = 0;
-		#endif
-
                 for (n = 0; n < l.n; ++n) {
                     int index = size*(j*l.w*l.n + i*l.n + n) + b*l.outputs;
                     box pred = get_region_box(l.output, l.biases, n, index, i, j, l.w, l.h);
@@ -320,68 +345,10 @@ void forward_region_layer(const region_layer l, network_state state)
                         delta_region_box(truth, l.output, l.biases, n, index, i, j, l.w, l.h, l.delta, .01);
                     }
 
-			#ifdef	CUSTOM_BACKPROP
-			int c;
-			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
-
-			if(l.output[index+4] > REGION_THRESH)
-			{
-				activeN++;
-
-				l.delta[index+4] = l.object_scale; // * getCostDREML(l.output[obj_index]);
-
-				for(c = 0; c < l.coords; c++)
-				{
-					l.delta[index+(c*l.w*l.h)] = l.coord_scale;
-				}
-
-				for(c = 0; c < l.classes; ++c)
-				{
-					int index2 = class_index+(c*l.w*l.h);				
-
-					l.delta[index2] = l.class_scale * getCostDREML(l.output[index+4] * l.output[index2]);
-				}
-			}
-			else
-			{
-				l.delta[index+4] = l.noobject_scale; // * getCostDREML(l.output[obj_index]);
-
-				for(c = 0; c < l.coords; c++)
-				{
-					l.delta[index+(c*l.w*l.h)] = 0;
-				}
-
-				for(c = 0; c < l.classes; ++c)
-				{
-					l.delta[class_index+(c*l.w*l.h)] = 0;
-				}
-			}
-			#endif
+                    #ifdef CUSTOM_BACKPROP
+                    adjustRegionLossesDREML(l,index);
+                    #endif
                 }
-
-
-		#ifdef	CUSTOM_BACKPROP
-		/*
-		if(activeN>0)
-		continue;
-		for (n = 0; n < l.n; ++n) 
-		{
-			int c;
-			int box_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 0);
-			int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords);
-			int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
-			l.delta[obj_index] = 0;
-			for(c = 0; c < l.coords; c++)
-			{
-				l.delta[box_index+(c*l.w*l.h)] = 0;
-			}
-			for(c = 0; c < l.classes; ++c)
-			{
-				l.delta[class_index+(c*l.w*l.h)] = 0;
-			}
-		}
-		*/
-		#endif
             }
         }
         for(t = 0; t < l.max_boxes; ++t){

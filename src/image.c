@@ -482,11 +482,12 @@ void draw_detections_v3(image im, detection *dets, int num, float thresh, char *
     free(selected_detections);
 }
 
-void save_detections(image im, detection *dets, int num, float thresh, char **names, int classes)
+int save_detections(image im, detection *dets, int num, float thresh, char **names, int classes, const char* fn)
 {
-    FILE* fh = fopen("mAP_result.txt","w");
+    FILE* fh = fopen(fn,"w");
 
     int i,j;
+    int count = 0;
 
     for(i = 0; i < num; ++i){
         //char labelstr[4096] = {0};
@@ -517,10 +518,13 @@ void save_detections(image im, detection *dets, int num, float thresh, char **na
             if(bot > im.h-1) bot = im.h-1;
 
             fprintf(fh, "%s %f %i %i %i %i\n", names[class], dets[i].prob[class], left, top, right, bot);
+            count++;
         }
     }
 
     fclose(fh);
+
+    return count;
 }
 
 void draw_detections(image im, int num, float thresh, box *boxes, float **probs, char **names, image **alphabet, int classes)
