@@ -148,19 +148,19 @@ void resize_shortcut_layer(layer *l, int w, int h, network *net)
 
 void forward_shortcut_layer(const layer l, network_state state)
 {
-    int from_w = state.net.layers[l.index].out_w;
-    int from_h = state.net.layers[l.index].out_h;
-    int from_c = state.net.layers[l.index].out_c;
+    int from_w = state.net.layers[l.index].w;
+    int from_h = state.net.layers[l.index].h;
+    int from_c = state.net.layers[l.index].c;
 
-    printf("nweights=%i, n=%i, from_w=%i, from_h=%i, from_c=%i, w=%i, h=%i, c=%i\n",l.nweights,l.n,from_w,from_h,from_c,l.w,l.h,l.c);
+    //printf("nweights=%i, n=%i, from_w=%i, from_h=%i, from_c=%i, w=%i, h=%i, c=%i\n",l.nweights,l.n,from_w,from_h,from_c,l.w,l.h,l.c);
 
-    if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
+    //if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
+    if (1) {
         int size = l.batch * l.w * l.h * l.c;
         int i;
         #pragma omp parallel for
         for(i = 0; i < size; ++i)
             l.output[i] = state.input[i] + state.net.layers[l.index].output[i];
-	printf("HERE....\n");
     }
     else {
         shortcut_multilayer_cpu(l.outputs * l.batch, l.outputs, l.batch, l.n, l.input_sizes, l.layers_output, l.output, state.input, l.weights, l.nweights, l.weights_normalizion);
