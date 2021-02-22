@@ -156,6 +156,7 @@ void forward_shortcut_layer(const layer l, network_state state)
 
     //if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
     if (1) {
+        printf("HERE\n");
         int size = l.batch * l.w * l.h * l.c;
         int i;
         #pragma omp parallel for
