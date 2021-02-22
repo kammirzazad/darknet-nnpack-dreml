@@ -158,6 +158,7 @@ void forward_shortcut_layer(const layer l, network_state state)
         #pragma omp parallel for
         for(i = 0; i < size; ++i)
             l.output[i] = state.input[i] + state.net.layers[l.index].output[i];
+	printf("HERE....\n");
     }
     else {
         shortcut_multilayer_cpu(l.outputs * l.batch, l.outputs, l.batch, l.n, l.input_sizes, l.layers_output, l.output, state.input, l.weights, l.nweights, l.weights_normalizion);
