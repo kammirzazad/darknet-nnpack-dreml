@@ -148,9 +148,9 @@ void resize_shortcut_layer(layer *l, int w, int h, network *net)
 
 void forward_shortcut_layer(const layer l, network_state state)
 {
-    int from_w = state.net.layers[l.index].w;
-    int from_h = state.net.layers[l.index].h;
-    int from_c = state.net.layers[l.index].c;
+    int from_w = state.net.layers[l.index].out_w;
+    int from_h = state.net.layers[l.index].out_h;
+    int from_c = state.net.layers[l.index].out_c;
 
     if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
         int size = l.batch * l.w * l.h * l.c;
