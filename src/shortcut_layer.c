@@ -148,20 +148,19 @@ void resize_shortcut_layer(layer *l, int w, int h, network *net)
 
 void forward_shortcut_layer(const layer l, network_state state)
 {
-/*
-    copy_cpu(l.outputs*l.batch, state.input, 1, l.output, 1);
-    shortcut_cpu(l.batch, l.w, l.h, l.c, net.layers[l.index].output, l.out_w, l.out_h, l.out_c, l.alpha, l.beta, l.output);
-    activate_array(l.output, l.outputs*l.batch, l.activation);
-*/
 
+    copy_cpu(l.outputs*l.batch, state.input, 1, l.output, 1);
+    shortcut_cpu(l.batch, l.w, l.h, l.c, state.net.layers[l.index].output, l.out_w, l.out_h, l.out_c, l.output);
+    activate_array(l.output, l.outputs*l.batch, l.activation);
+
+/*
     int from_w = state.net.layers[l.index].w;
     int from_h = state.net.layers[l.index].h;
     int from_c = state.net.layers[l.index].c;
 
     //printf("nweights=%i, n=%i, from_w=%i, from_h=%i, from_c=%i, w=%i, h=%i, c=%i\n",l.nweights,l.n,from_w,from_h,from_c,l.w,l.h,l.c);
 
-    //if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
-    if (1) {
+    if (l.nweights == 0 && l.n == 1 && from_w == l.w && from_h == l.h && from_c == l.c) {
         int size = l.batch * l.w * l.h * l.c;
         int i;
         #pragma omp parallel for
@@ -179,6 +178,7 @@ void forward_shortcut_layer(const layer l, network_state state)
     if (l.activation == SWISH) activate_array_swish(l.output, l.outputs*l.batch, l.activation_input, l.output);
     else if (l.activation == MISH) activate_array_mish(l.output, l.outputs*l.batch, l.activation_input, l.output);
     else activate_array_cpu_custom(l.output, l.outputs*l.batch, l.activation);
+*/
 }
 
 void backward_shortcut_layer(const layer l, network_state state)
