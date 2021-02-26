@@ -365,16 +365,18 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int classCount = 0;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
 
-    l.delta[obj_index] = l.cls_normalizer * logistic_gradient(l.output[obj_index]);
+    // similar to YOLOv2, objectness should have max importance/loss, independent of value
+    l.delta[obj_index] = l.cls_normalizer; // * (1-l.output[obj_index]);
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
         int index = class_index + (class_id*l.w*l.h);
 
-        if(l.output[index] > DET_THRESH)
+        if((l.output[obj_index] * l.output[index]) > DET_THRESH)
         {
             const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
-            l.delta[index] = class_multiplier * logistic_gradient(l.output[index]);
+	    // in multi-label classification, all valid detections have max importance/loss
+            l.delta[index] = class_multiplier; // * l.output[index];
             classCount++; 
         }
         else
