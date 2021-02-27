@@ -1,9 +1,9 @@
 # Darknet with support for DREML functions
-This repository forks from darknet-nnpack and adds support for DREML functions. These functions are enabled by macros in [darknet.h](https://github.com/kammirzazad/darknet-nnpack-dreml/blob/alexeyab/include/darknet.h). These macros and their usecases are explained below:
+This repository forks from darknet-nnpack and adds support for DREML functions. These functions are enabled by macros in [darknet.h](https://github.com/kammirzazad/darknet-nnpack-dreml/blob/alexeyab/include/darknet.h). The macros and their usecases are explained below:
 * **CUSTOM\_BACKPROP**: Enables custom loss functions in backpropogation of region\_layer, yolo\_layer and softmax\_layer
-* **DYNAMIC\_FMAP\_PRUNING**: Prevents backpropogation of convolutional layers from calculating weights
-* **IMG\_SEG**: Adds support for image segmentation to darknet as proposed [here](https://github.com/ArtyZe/yolo_segmentation). Should be undefined for other applications.
-* **DET\_THRESH**: Detection threshold used by custom loss functions of region\_layer and yolo\_layer.
+* **DYNAMIC\_FMAP\_PRUNING**: Prevents backpropogation of convolutional layers from calculating weight updates
+* **IMG\_SEG**: Adds support for image segmentation as proposed [here](https://github.com/ArtyZe/yolo_segmentation), should be undefined for other applications
+* **DET\_THRESH**: Detection threshold used by custom loss functions of region\_layer and yolo\_layer
 
 If you have a question about this repository or a problem using modified darknet, you can contact Kamyar at kammirzazad@utexas.edu. The remainder of this README is same as the original repo.
 
