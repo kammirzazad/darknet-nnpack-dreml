@@ -7,6 +7,8 @@ This repository forks from darknet-nnpack and adds support for DREML functions. 
 
 If you have a question about this repository or a problem using modified darknet, you can contact Kamyar at kammirzazad@utexas.edu. The remainder of this README is same as the original repo.
 
+![build](https://github.com/kammirzazad/darknet-nnpack-dreml/actions/workflows/build.yml/badge.svg)
+
 # Darknet with NNPACK
 NNPACK was used to optimize [AlexeyAB/darknet](https://github.com/AlexeyAB/darknet) without using a GPU. It is useful for embedded devices using ARM CPUs.
 
