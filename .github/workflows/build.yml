@@ -2,9 +2,9 @@ name: build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ alexab ]
   pull_request:
-    branches: [ master ]
+    branches: [ alexab ]
 
 jobs:
   build:
