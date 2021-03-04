@@ -204,13 +204,31 @@ void forward_batchnorm_layer(layer l, network_state state)
 
 void backward_batchnorm_layer(const layer l, network_state state)
 {
+    #ifndef DYNAMIC_FMAP_PRUNING
     backward_scale_cpu(l.x_norm, l.delta, l.batch, l.out_c, l.out_w*l.out_h, l.scale_updates);
+    #endif
 
     scale_bias(l.delta, l.scales, l.batch, l.out_c, l.out_h*l.out_w);
 
+    #ifndef DYNAMIC_FMAP_PRUNING
     mean_delta_cpu(l.delta, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.mean_delta);
     variance_delta_cpu(l.x, l.delta, l.mean, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.variance_delta);
     normalize_delta_cpu(l.x, l.mean, l.variance, l.mean_delta, l.variance_delta, l.batch, l.out_c, l.out_w*l.out_h, l.delta);
+    #else
+    //normalize_delta_cpu without l.mean_delta and l.variance_delta, hence no l.x
+    int f, j, k;
+    int filters = l.out_c;
+    int spatial = l.out_w*l.out_h;
+    for(j = 0; j < l.batch; ++j){
+        for(f = 0; f < filters; ++f){
+            for(k = 0; k < spatial; ++k){
+                int index = j*filters*spatial + f*spatial + k;
+                l.delta[index] = l.delta[index] * 1./(sqrt(l.rolling_variance[f]) + .00001f);
+            }
+        }
+    }
+    #endif
+
     if(l.type == BATCHNORM) copy_cpu(l.outputs*l.batch, l.delta, 1, state.delta, 1);
 }
 

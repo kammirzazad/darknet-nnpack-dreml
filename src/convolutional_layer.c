@@ -519,10 +519,12 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
         }
 
 #ifndef GPU
+        #ifndef DYNAMIC_FMAP_PRUNING
         if (train) {
             l.x = (float*)xcalloc(total_batch * l.outputs, sizeof(float));
             l.x_norm = (float*)xcalloc(total_batch * l.outputs, sizeof(float));
         }
+        #endif
 #endif  // not GPU
     }
 
@@ -1488,6 +1490,7 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
     if (l.batch_normalize) {
         backward_batchnorm_layer(l, state);
     }
+    // since we are not trying to learn biases, skip backward_bias()
     #ifndef DYNAMIC_FMAP_PRUNING
     else {
         backward_bias(l.bias_updates, l.delta, l.batch, l.n, k);
