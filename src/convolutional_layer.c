@@ -430,10 +430,12 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
         l.weights = (float*)xcalloc(l.nweights, sizeof(float));
         l.biases = (float*)xcalloc(n, sizeof(float));
 
+	#ifndef DYNAMIC_FMAP_PRUNING
         if (train) {
             l.weight_updates = (float*)xcalloc(l.nweights, sizeof(float));
             l.bias_updates = (float*)xcalloc(n, sizeof(float));
         }
+	#endif
     }
 
     // float scale = 1./sqrt(size*size*c);
@@ -1486,9 +1488,11 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
     if (l.batch_normalize) {
         backward_batchnorm_layer(l, state);
     }
+    #ifndef DYNAMIC_FMAP_PRUNING
     else {
         backward_bias(l.bias_updates, l.delta, l.batch, l.n, k);
     }
+    #endif
 
     for (i = 0; i < l.batch; ++i) {
         for (j = 0; j < l.groups; ++j) {
