@@ -178,6 +178,10 @@ void resize_batchnorm_layer(layer *l, int w, int h)
 
 void forward_batchnorm_layer(layer l, network_state state)
 {
+    #ifdef DYNAMIC_FMAP_PRUNING
+    copy_cpu(l.outputs*l.batch, l.output, 1, l.x, 1);
+    #endif
+
     if(l.type == BATCHNORM) copy_cpu(l.outputs*l.batch, state.input, 1, l.output, 1);
     if(l.type == CONNECTED){
         l.out_c = l.outputs;
@@ -204,16 +208,17 @@ void forward_batchnorm_layer(layer l, network_state state)
 
 void backward_batchnorm_layer(const layer l, network_state state)
 {
-    #ifndef DYNAMIC_FMAP_PRUNING
+    //#ifndef DYNAMIC_FMAP_PRUNING
     backward_scale_cpu(l.x_norm, l.delta, l.batch, l.out_c, l.out_w*l.out_h, l.scale_updates);
-    #endif
+    //#endif
 
     scale_bias(l.delta, l.scales, l.batch, l.out_c, l.out_h*l.out_w);
 
-    #ifndef DYNAMIC_FMAP_PRUNING
+    //#ifndef DYNAMIC_FMAP_PRUNING
     mean_delta_cpu(l.delta, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.mean_delta);
     variance_delta_cpu(l.x, l.delta, l.mean, l.variance, l.batch, l.out_c, l.out_w*l.out_h, l.variance_delta);
     normalize_delta_cpu(l.x, l.mean, l.variance, l.mean_delta, l.variance_delta, l.batch, l.out_c, l.out_w*l.out_h, l.delta);
+/*
     #else
     //normalize_delta_cpu without l.mean_delta and l.variance_delta, hence no l.x
     int f, j, k;
@@ -228,6 +233,7 @@ void backward_batchnorm_layer(const layer l, network_state state)
         }
     }
     #endif
+*/
 
     if(l.type == BATCHNORM) copy_cpu(l.outputs*l.batch, l.delta, 1, state.delta, 1);
 }
