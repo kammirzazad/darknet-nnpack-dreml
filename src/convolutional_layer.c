@@ -519,12 +519,12 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
         }
 
 #ifndef GPU
-        //#ifndef DYNAMIC_FMAP_PRUNING
         if (train) {
             l.x = (float*)xcalloc(total_batch * l.outputs, sizeof(float));
+            #ifndef DYNAMIC_FMAP_PRUNING
             l.x_norm = (float*)xcalloc(total_batch * l.outputs, sizeof(float));
+            #endif
         }
-        //#endif
 #endif  // not GPU
     }
 
