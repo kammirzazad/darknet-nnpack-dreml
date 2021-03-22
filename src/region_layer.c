@@ -206,7 +206,14 @@ void  adjustRegionLossesDREML(const region_layer l, int index)
             int index2 = index + l.coords + 1 + class_id;
 
             // softmax gradient is itself
-            l.delta[index2] = l.class_scale * l.output[index + 4] * l.output[index2];
+            if(l.output[index + 4] * l.output[index2] > DET_THRESH)
+            {
+                l.delta[index2] = l.class_scale; //* l.output[index + 4] * l.output[index2];
+            }
+            else
+            {
+                l.delta[index2] = 0;
+            }
         }
     }
     else
