@@ -217,12 +217,12 @@ void  adjustRegionLossesDREML(const region_layer l, int index)
             }
             */
 
-            l.delta[index2] = l.class_scale * l.output[index + 4] * l.output[index2];
+            l.delta[index2] = l.class_scale * l.output[index2];
         }
     }
     else
     {
-        l.delta[index + 4] = l.noobject_scale * logistic_gradient(l.output[index + 4]); 
+        l.delta[index + 4] = 0; //l.noobject_scale * logistic_gradient(l.output[index + 4]);
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
