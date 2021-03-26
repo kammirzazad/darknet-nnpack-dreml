@@ -368,6 +368,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     // similar to YOLOv2, objectness should have max importance/loss, independent of value
     l.delta[obj_index] = l.cls_normalizer; // * (1-l.output[obj_index]);
 
+/*
     if(l.output[obj_index] > DET_THRESH)
     {
         for(class_id = 0; class_id < l.classes; ++class_id)
@@ -403,7 +404,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
              l.delta[box_index + (coord_id*l.w*l.h)] = 0;
         }
     }
-/*
+*/
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
         int index = class_index + (class_id*l.w*l.h);
@@ -442,7 +443,6 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
              l.delta[box_index + (coord_id*l.w*l.h)] = 0;
         }
     }
-*/
 }
 #endif
 
