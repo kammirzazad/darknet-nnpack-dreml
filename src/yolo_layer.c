@@ -499,12 +499,15 @@ void forward_yolo_layer(const layer l, network_state state)
     int i, j, b, t, n;
     memcpy(l.output, state.input, l.outputs*l.batch * sizeof(float));
 
-    for(uint i=0; i<l.outputs; i++)
+    if(l.w == 52)
     {
-        printf("%f ",state.input[i]);
+        for(uint i=0; i<l.outputs; i++)
+        {
+            printf("%f ",state.input[i]);
 
-        if(i%l.c==l.c-1)
-            printf("\n");
+            if(i%l.c==l.c-1)
+               printf("\n");
+        }
     }
 
 #ifndef GPU
