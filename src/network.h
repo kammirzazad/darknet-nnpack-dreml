@@ -170,6 +170,8 @@ void randomize_network_recurrent_state(network net);
 void remember_network_recurrent_state(network net);
 void restore_network_recurrent_state(network net);
 
+void custom_get_region_detections(layer l, int w, int h, int net_w, int net_h, float thresh, int *map, float hier, int relative, detection *dets, int letter);
+
 #ifdef __cplusplus
 }
 #endif
