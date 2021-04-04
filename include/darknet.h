@@ -457,6 +457,8 @@ struct layer {
     uint32_t *bin_re_packed_input;
     char *t_bit_input;
 
+    float * anchor_boxes;
+
     struct layer *input_layer;
     struct layer *self_layer;
     struct layer *output_layer;
@@ -601,6 +603,7 @@ struct layer {
     int *input_sizes_gpu;
     float **layers_output_gpu;
     float **layers_delta_gpu;
+
 #ifdef CUDNN
     cudnnTensorDescriptor_t srcTensorDesc, dstTensorDesc;
     cudnnTensorDescriptor_t srcTensorDesc16, dstTensorDesc16;
