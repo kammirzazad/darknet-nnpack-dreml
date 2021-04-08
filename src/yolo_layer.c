@@ -90,7 +90,7 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
 #endif
     srand(time(0));
 
-    l.anchor_boxes = (float*)xcalloc(n, sizeof(float));
+    l.anchor_boxes = (float*)xcalloc(w*h*n, sizeof(float));
 
     return l;
 }
@@ -366,8 +366,10 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int class_id, coord_id;
     int classCount = 0;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+    
+    const float anchor_val = l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
-    l.delta[obj_index] = l.anchor_boxes[n] * l.cls_normalizer; //* (1-l.output[obj_index]);
+    l.delta[obj_index] = anchor_val * l.cls_normalizer; //* (1-l.output[obj_index]);
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
@@ -375,7 +377,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
 
         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-        l.delta[index] = l.anchor_boxes[n] * class_multiplier; //* (1-l.output[index]);
+        l.delta[index] = anchor_val * class_multiplier; //* (1-l.output[index]);
     }
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
@@ -389,7 +391,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
              l.delta[index] *= logistic_gradient(l.output[index]);
         }
 
-	l.delta[index] *= l.anchor_boxes[n];
+	l.delta[index] *= anchor_val;
     }
 
 /*
@@ -996,7 +998,7 @@ int get_yolo_detections(layer l, int w, int h, int netw, int neth, float thresh,
                     int class_index = entry_index(l, 0, n*l.w*l.h + i, 4 + 1 + j);
                     float prob = objectness*predictions[class_index];
                     dets[count].prob[j] = (prob > thresh) ? prob : 0;
-                    l.anchor_boxes[n] += ((prob > thresh) ? 1.0 : 0.0);
+                    l.anchor_boxes[l.n*((l.w*row)+col)+n] += ((prob > thresh) ? 1.0 : 0.0);
                 }
                 ++count;
             }

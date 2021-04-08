@@ -48,7 +48,7 @@ region_layer make_region_layer(int batch, int w, int h, int n, int classes, int 
     fprintf(stderr, "detection\n");
     srand(time(0));
 
-    l.anchor_boxes = (float*)xcalloc(n, sizeof(float));
+    l.anchor_boxes = (float*)xcalloc(w*h*n, sizeof(float));
 
     return l;
 }
@@ -184,9 +184,11 @@ static int entry_index(layer l, int batch, int location, int entry)
 }
 
 #ifdef CUSTOM_BACKPROP
-void  adjustRegionLossesDREML(const region_layer l, int index, int n)
+void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int n)
 {
-    l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale /* (1-l.output[index + 4]) */ * logistic_gradient(l.output[index + 4]);
+    const float anchor_val = l.anchor_boxes[l.n*((l.w*j)+i)+n];
+
+    l.delta[index + 4] = anchor_val * l.object_scale * logistic_gradient(l.output[index + 4]);
 
     int coord_id, class_id;
 
@@ -200,14 +202,14 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int n)
             l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
         }
 
-        l.delta[index + coord_id] *= l.anchor_boxes[n];
+        l.delta[index + coord_id] *= anchor_val;
     }
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
         int index2 = index + l.coords + 1 + class_id;
 
-        l.delta[index2] = l.anchor_boxes[n] * l.class_scale; //* (1-l.output[index2]);
+        l.delta[index2] = anchor_val * l.class_scale; //* (1-l.output[index2]);
     }
 
 /*
@@ -381,7 +383,7 @@ void forward_region_layer(const region_layer l, network_state state)
                     }
 
                     #ifdef CUSTOM_BACKPROP
-                    adjustRegionLossesDREML(l,index,n);
+                    adjustRegionLossesDREML(l,index,i,j,n);
                     #endif
                 }
             }
@@ -505,7 +507,7 @@ void get_region_boxes(layer l, int w, int h, float thresh, float **probs, box *b
                 for(j = 0; j < l.classes; ++j){
                     float prob = scale*predictions[class_index+j];
                     probs[index][j] = (prob > thresh) ? prob : 0;
-                    l.anchor_boxes[n] += ((prob > thresh) ? 1.0 : 0.0);
+                    l.anchor_boxes[l.n*((l.w*row)+col)+n] += ((prob > thresh) ? 1.0 : 0.0);
                 }
             }
             if(only_objectness){
