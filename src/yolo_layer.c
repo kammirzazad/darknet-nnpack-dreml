@@ -90,7 +90,7 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
 #endif
     srand(time(0));
 
-    l.anchor_boxes = (float*)xcalloc(/*w*h*/n, sizeof(float));
+    l.anchor_boxes = (float*)xcalloc(w*h*n, sizeof(float));
 
     return l;
 }
@@ -367,7 +367,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int classCount = 0;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
     
-    const float anchor_val = l.anchor_boxes[/*l.n*((l.w*j)+i)+*/n];
+    const float anchor_val = l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
     l.delta[obj_index] = anchor_val * l.cls_normalizer; //* (1-l.output[obj_index]);
 
@@ -998,7 +998,7 @@ int get_yolo_detections(layer l, int w, int h, int netw, int neth, float thresh,
                     int class_index = entry_index(l, 0, n*l.w*l.h + i, 4 + 1 + j);
                     float prob = objectness*predictions[class_index];
                     dets[count].prob[j] = (prob > thresh) ? prob : 0;
-                    l.anchor_boxes[/*l.n*((l.w*row)+col)+*/n] += ((prob > thresh) ? 1.0 : 0.0);
+                    l.anchor_boxes[l.n*((l.w*row)+col)+n] += ((prob > thresh) ? 1.0 : 0.0);
                 }
                 ++count;
             }
