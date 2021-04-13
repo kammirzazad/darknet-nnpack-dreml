@@ -186,7 +186,7 @@ static int entry_index(layer l, int batch, int location, int entry)
 #ifdef CUSTOM_BACKPROP
 void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int n)
 {
-    const float anchor_val = l.anchor_boxes[l.n*((l.w*j)+i)+n];
+    const float anchor_val = 1.0; //l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
     l.delta[index + 4] = anchor_val * l.object_scale * logistic_gradient(l.output[index + 4]);
 

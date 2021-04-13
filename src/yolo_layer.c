@@ -367,7 +367,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int classCount = 0;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
     
-    const float anchor_val = l.anchor_boxes[l.n*((l.w*j)+i)+n];
+    const float anchor_val = 1.0; //l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
     l.delta[obj_index] = anchor_val * l.cls_normalizer; //* (1-l.output[obj_index]);
 
