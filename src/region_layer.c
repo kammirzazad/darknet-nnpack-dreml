@@ -186,12 +186,15 @@ static int entry_index(layer l, int batch, int location, int entry)
 #ifdef CUSTOM_BACKPROP
 void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int n)
 {
+/*
     const float anchor_val = 1.0; //l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
     l.delta[index + 4] = anchor_val * l.object_scale * logistic_gradient(l.output[index + 4]);
+*/
 
     int coord_id, class_id;
 
+/*
     for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
         l.delta[index + coord_id] = l.coord_scale;
@@ -209,17 +212,17 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
     {
         int index2 = index + l.coords + 1 + class_id;
 
-        l.delta[index2] = anchor_val * l.class_scale; //* (1-l.output[index2]);
+        l.delta[index2] = anchor_val * l.class_scale; // * (1-l.output[index2]);
     }
+*/
 
-/*
     if(l.output[index + 4] > DET_THRESH)
     {
-        l.delta[index + 4] = l.object_scale * logistic_gradient(l.output[index + 4]);
+        l.delta[index + 4] = l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
-        {	   
-            l.delta[index + coord_id] = l.coord_scale;
+        {
+            l.delta[index + coord_id] = 0.01 * l.coord_scale;
 
             // only first two coordinates go through logistic
             if(coord_id < 2)
@@ -235,19 +238,17 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
             // softmax gradient is itself
             if(l.output[index + 4] * l.output[index2] > DET_THRESH)
             {
-                l.delta[index2] = l.class_scale;
+                l.delta[index2] = l.class_scale * (1.0 - l.output[index2]);
             }
             else
             {
-                l.delta[index2] = 0;
+                l.delta[index2] = l.class_scale * l.output[index2];
             }
-
-            //l.delta[index2] = l.class_scale * l.output[index2];
         }
     }
     else
     {
-        l.delta[index + 4] = l.noobject_scale * logistic_gradient(l.output[index + 4]);
+        l.delta[index + 4] = l.noobject_scale * l.output[index + 4] * logistic_gradient(l.output[index + 4]);
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
@@ -261,7 +262,6 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
             l.delta[index2] = 0;
         }
     }
-*/
 }
 #endif
 

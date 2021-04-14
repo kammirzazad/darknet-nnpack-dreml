@@ -366,10 +366,11 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int class_id, coord_id;
     int classCount = 0;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
-    
+
+/*
     const float anchor_val = 1.0; //l.anchor_boxes[l.n*((l.w*j)+i)+n];
 
-    l.delta[obj_index] = anchor_val * l.cls_normalizer; //* (1-l.output[obj_index]);
+    l.delta[obj_index] = anchor_val * l.cls_normalizer; // * (1-l.output[obj_index]);
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
@@ -377,7 +378,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
 
         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-        l.delta[index] = anchor_val * class_multiplier; //* (1-l.output[index]);
+        l.delta[index] = anchor_val * class_multiplier; // * (1-l.output[index]);
     }
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
@@ -393,24 +394,33 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
 
 	l.delta[index] *= anchor_val;
     }
+*/
 
-/*
     if(l.output[obj_index] > DET_THRESH)
     {
+        l.delta[obj_index] = l.cls_normalizer * (1.0 - l.output[obj_index]);
+
         for(class_id = 0; class_id < l.classes; ++class_id)
         {
             int index = class_index + (class_id*l.w*l.h);
 
             const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-            l.delta[index] = class_multiplier * l.output[index];
+            if((l.output[obj_index] * l.output[index]) > DET_THRESH)
+            {
+                l.delta[index] = class_multiplier * (1.0 - l.output[index]);
+            }
+            else
+            {
+                l.delta[index] = class_multiplier * l.output[index];
+            }
         }
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
             int index = box_index + (coord_id*l.w*l.h);
 
-            l.delta[index] = l.iou_normalizer;
+            l.delta[index] = 0.01 * l.iou_normalizer;
 
             if(coord_id < 2)
             {
@@ -420,6 +430,8 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     }
     else
     {
+        l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
+
         for(class_id = 0; class_id < l.classes; ++class_id)
         {
              l.delta[class_index + (class_id*l.w*l.h)] = 0;
@@ -432,6 +444,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     }
 
 
+/*
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
         int index = class_index + (class_id*l.w*l.h);
