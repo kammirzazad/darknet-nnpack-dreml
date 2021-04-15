@@ -218,11 +218,11 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
 
     if(l.output[index + 4] > DET_THRESH)
     {
-        l.delta[index + 4] = l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+        l.delta[index + 4] = l.object_scale * EPSILON * logistic_gradient(l.output[index + 4]);
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
-            l.delta[index + coord_id] = 0.01 * l.coord_scale;
+            l.delta[index + coord_id] = EPSILON * l.coord_scale;
 
             // only first two coordinates go through logistic
             if(coord_id < 2)
@@ -238,7 +238,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
             // softmax gradient is itself
             if(l.output[index + 4] * l.output[index2] > DET_THRESH)
             {
-                l.delta[index2] = l.class_scale * (1.0 - l.output[index2]);
+                l.delta[index2] = l.class_scale * EPSILON;
             }
             else
             {
