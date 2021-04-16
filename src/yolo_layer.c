@@ -398,7 +398,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
 
     if(l.output[obj_index] > DET_THRESH)
     {
-        l.delta[obj_index] = l.cls_normalizer * EPSILON;
+        l.delta[obj_index] = l.cls_normalizer * (1 - l.output[obj_index]);
 
         for(class_id = 0; class_id < l.classes; ++class_id)
         {
@@ -408,7 +408,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
 
             if((l.output[obj_index] * l.output[index]) > DET_THRESH)
             {
-                l.delta[index] = class_multiplier * EPSILON;
+                l.delta[index] = class_multiplier * (1 - l.output[index]);
             }
             else
             {
