@@ -189,7 +189,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
 {
     int coord_id, class_id;
 
-    l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * logistic_gradient(l.output[index + 4]);
+    l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
@@ -206,7 +206,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
     {
         int index2 = index + l.coords + 1 + class_id;
 
-        l.delta[index2] = l.anchor_boxes[n] * l.class_scale * l.class_counts[class_id];
+        l.delta[index2] = l.anchor_boxes[n] * l.class_scale * (l.class_counts[class_id] - l.output[index2]);
     }
     
 /*
