@@ -39,7 +39,7 @@
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
 #define EPSILON 0.01
-#define	DET_THRESH 0.24
+#define	DET_THRESH 0.15
 
 #define SECRET_NUM -1234
 
