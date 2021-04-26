@@ -1488,7 +1488,7 @@ void backward_convolutional_layer(convolutional_layer l, network_state state)
     else gradient_array(l.output, l.outputs*l.batch, l.activation, l.delta);
 
     if (l.batch_normalize) {
-        //backward_batchnorm_layer(l, state);
+        backward_batchnorm_layer(l, state);
     }
     // since we are not trying to learn biases, skip backward_bias()
     #ifndef DYNAMIC_FMAP_PRUNING
