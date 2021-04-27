@@ -1310,7 +1310,7 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
                 else {
                     //im2col_cpu(im, l.c / l.groups, l.h, l.w, l.size, l.stride, l.pad, b);
 
-		    //printf("im=%p, b=%p\n",(void*)im,(void*)b);
+		    printf("im=%p, b=%p\n",(void*)im,(void*)b);
 
                     im2col_cpu_ext(im,   // input
                         l.c / l.groups,     // input channels
