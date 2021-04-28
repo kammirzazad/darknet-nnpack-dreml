@@ -367,6 +367,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
     int class_id, coord_id;
     int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
 
+#ifdef NO_THRESH
     l.delta[obj_index] = /*l.anchor_boxes[n] */ l.cls_normalizer * (1 - l.output[obj_index]);
 
     for(class_id = 0; class_id < l.classes; ++class_id)
@@ -389,8 +390,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
              l.delta[index] *= logistic_gradient(l.output[index]);
         }
     }
-
-/*
+#else
     if(l.output[obj_index] > DET_THRESH)
     {
         l.delta[obj_index] = l.cls_normalizer * (1 - l.output[obj_index]);
@@ -437,7 +437,7 @@ void adjustYoloLossesDREML(const layer l, int obj_index, int box_index, int i, i
              l.delta[box_index + (coord_id*l.w*l.h)] = 0;
         }
     }
-*/
+#endif
 
 /*
     for(class_id = 0; class_id < l.classes; ++class_id)
