@@ -252,14 +252,14 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + coord_id] = 0;
+                l.delta[index + coord_id] = 1.0; // inverse gradient
             }
 
             for(class_id = 0; class_id < l.classes; ++class_id)
             {
                 int index2 = index + l.coords + 1 + class_id;
 
-                l.delta[index2] = 0;
+                l.delta[index2] = 1.0; // inverse gradient
             }
         }
     }
