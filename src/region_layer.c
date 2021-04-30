@@ -192,7 +192,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
     //if(l.anchor_boxes[n]==0)
     //  printf("anchor_boxes[%f] is zero\n",l.anchor_boxes[n]);
 
-#ifdef NO_THRESH
+    #if DET_THRESH == 0
     l.delta[index + 4] = /*l.anchor_boxes[n] */ l.object_scale * (1 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
@@ -212,8 +212,8 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
 
         l.delta[index2] = /*l.anchor_boxes[n] */ l.class_scale * (1 /*l.class_counts[class_id]*/ - l.output[index2]);
     }
-#else
-    if(l.output[index + 4] > DET_THRESH)
+    #else
+    if(l.output[index + 4] > DET_THRESH/100.0)
     {
         l.delta[index + 4] = l.object_scale * (1 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
 
@@ -233,7 +233,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
             int index2 = index + l.coords + 1 + class_id;
 
             // softmax gradient is itself
-            if(l.output[index + 4] * l.output[index2] > DET_THRESH)
+            if(l.output[index + 4] * l.output[index2] > DET_THRESH/100.0)
             {
                 l.delta[index2] = l.class_scale * (1 - l.output[index2]);
             }
@@ -259,7 +259,7 @@ void  adjustRegionLossesDREML(const region_layer l, int index, int i, int j, int
             l.delta[index2] = 0;
         }
     }
-#endif
+    #endif
 }
 #endif
 
