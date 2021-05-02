@@ -242,24 +242,29 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 }
                 else
                 {
-                    l.delta[index2] = l.class_scale * l.output[index2];
+                    l.delta[index2] = l.class_scale; // * l.output[index2];
                 }
             }
         }
         else
         {
-            l.delta[index + 4] = l.noobject_scale * l.output[index + 4] * logistic_gradient(l.output[index + 4]);
+            l.delta[index + 4] = l.noobject_scale * /*l.output[index + 4] */ logistic_gradient(l.output[index + 4]);
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + coord_id] = INF; // inverse gradient
+                l.delta[index + coord_id] = l.coord_scale;
+
+                if(coord_id < 2)
+                {
+                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
+                }
             }
 
             for(class_id = 0; class_id < l.classes; ++class_id)
             {
                 int index2 = index + l.coords + 1 + class_id;
 
-                l.delta[index2] = INF; // inverse gradient
+                l.delta[index2] = l.class_scale; // inverse gradient
             }
         }
     }
