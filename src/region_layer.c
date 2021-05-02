@@ -244,7 +244,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 }
                 else
                 {
-                    l.delta[index2] = l.class_scale;
+                    l.delta[index2] = l.class_scale * EPSILON;
                 }
             }
         }
