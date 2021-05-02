@@ -458,6 +458,8 @@ struct layer {
     uint32_t *bin_re_packed_input;
     char *t_bit_input;
 
+    int     enable_gemm;
+    int     enable_bias;
     float * class_counts;
     float * anchor_boxes;
 

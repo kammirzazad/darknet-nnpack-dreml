@@ -380,6 +380,10 @@ convolutional_layer make_convolutional_layer(int batch, int steps, int h, int w,
     l.type = CONVOLUTIONAL;
     l.train = train;
 
+    // added by Kamyar
+    l.enable_gemm = 1;
+    l.enable_bias = 1;
+
     if (xnor) groups = 1;   // disable groups for XNOR-net
     if (groups < 1) groups = 1;
 
@@ -1083,47 +1087,53 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
     int out_w = convolutional_out_width(l);
     int m = l.n / l.groups;
     int n = out_h*out_w;
-
-    for (int j = 0; j < l.groups; ++j)
+    
+    if(l.enable_gemm)
     {
-        float *im = state.input + j*(l.c / l.groups)*l.h*l.w;
+        for (int j = 0; j < l.groups; ++j)
+        {
+            float *im = state.input + j*(l.c / l.groups)*l.h*l.w;
 
-        nnp_convolution_inference(
-            nnp_convolution_algorithm_implicit_gemm,
-            nnp_convolution_transform_strategy_tuple_based,
-            (size_t)(l.c / l.groups),
-            (size_t)m,
-            input_size,
-            input_padding,
-            kernel_size,
-            stride,
-            im,
-            l.weights +j*l.nweights / l.groups,
-            NULL,
-            l.output + j*n*m,
-            NULL,
-            NULL,
-            nnp_activation_identity,
-            NULL,
-            state.net.threadpool,
-            NULL
-        );
+            nnp_convolution_inference(
+                nnp_convolution_algorithm_implicit_gemm,
+                nnp_convolution_transform_strategy_tuple_based,
+                (size_t)(l.c / l.groups),
+                (size_t)m,
+                input_size,
+                input_padding,
+                kernel_size,
+                stride,
+                im,
+                l.weights +j*l.nweights / l.groups,
+                NULL,
+                l.output + j*n*m,
+                NULL,
+                NULL,
+                nnp_activation_identity,
+                NULL,
+                state.net.threadpool,
+                NULL
+            );
+        }
     }
 
-    if(l.batch_normalize){
-        forward_batchnorm_layer(l, state);
-    }
-    else {
-        add_bias(l.output, l.biases, l.batch, l.n, out_h*out_w);
-    }
+    if(l.enable_bias)
+    {
+        if(l.batch_normalize){
+            forward_batchnorm_layer(l, state);
+        }
+        else {
+            add_bias(l.output, l.biases, l.batch, l.n, out_h*out_w);
+        }
 
-    //activate_array(l.output, m*n*l.batch, l.activation);
-    if (l.activation == SWISH) activate_array_swish(l.output, l.outputs*l.batch, l.activation_input, l.output);
-    else if (l.activation == MISH) activate_array_mish(l.output, l.outputs*l.batch, l.activation_input, l.output);
-    else if (l.activation == NORM_CHAN) activate_array_normalize_channels(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output);
-    else if (l.activation == NORM_CHAN_SOFTMAX) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 0);
-    else if (l.activation == NORM_CHAN_SOFTMAX_MAXVAL) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 1);
-    else activate_array_cpu_custom(l.output, l.outputs*l.batch, l.activation);
+        //activate_array(l.output, m*n*l.batch, l.activation);
+        if (l.activation == SWISH) activate_array_swish(l.output, l.outputs*l.batch, l.activation_input, l.output);
+        else if (l.activation == MISH) activate_array_mish(l.output, l.outputs*l.batch, l.activation_input, l.output);
+        else if (l.activation == NORM_CHAN) activate_array_normalize_channels(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output);
+        else if (l.activation == NORM_CHAN_SOFTMAX) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 0);
+        else if (l.activation == NORM_CHAN_SOFTMAX_MAXVAL) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 1);
+        else activate_array_cpu_custom(l.output, l.outputs*l.batch, l.activation);
+    }
 
     if(l.binary || l.xnor) swap_binary(&l);
 
@@ -1301,7 +1311,7 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
                 return;
 
             }
-            else {
+            else if(l.enable_gemm) {
                 //printf(" l.index = %d - FP32 \n", l.index);
                 float *im = state.input + (i*l.groups + j)*(l.c / l.groups)*l.h*l.w;
                 if (l.size == 1) {
@@ -1331,20 +1341,23 @@ void forward_convolutional_layer(convolutional_layer l, network_state state)
         }
     }
 
-    if(l.batch_normalize){
-        forward_batchnorm_layer(l, state);
-    }
-    else {
-        add_bias(l.output, l.biases, l.batch, l.n, out_h*out_w);
-    }
+    if(l.enable_bias)
+    {
+        if(l.batch_normalize){
+            forward_batchnorm_layer(l, state);
+        }
+        else {
+            add_bias(l.output, l.biases, l.batch, l.n, out_h*out_w);
+        }
 
-    //activate_array(l.output, m*n*l.batch, l.activation);
-    if (l.activation == SWISH) activate_array_swish(l.output, l.outputs*l.batch, l.activation_input, l.output);
-    else if (l.activation == MISH) activate_array_mish(l.output, l.outputs*l.batch, l.activation_input, l.output);
-    else if (l.activation == NORM_CHAN) activate_array_normalize_channels(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output);
-    else if (l.activation == NORM_CHAN_SOFTMAX) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 0);
-    else if (l.activation == NORM_CHAN_SOFTMAX_MAXVAL) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 1);
-    else activate_array_cpu_custom(l.output, l.outputs*l.batch, l.activation);
+        //activate_array(l.output, m*n*l.batch, l.activation);
+        if (l.activation == SWISH) activate_array_swish(l.output, l.outputs*l.batch, l.activation_input, l.output);
+        else if (l.activation == MISH) activate_array_mish(l.output, l.outputs*l.batch, l.activation_input, l.output);
+        else if (l.activation == NORM_CHAN) activate_array_normalize_channels(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output);
+        else if (l.activation == NORM_CHAN_SOFTMAX) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 0);
+        else if (l.activation == NORM_CHAN_SOFTMAX_MAXVAL) activate_array_normalize_channels_softmax(l.output, l.outputs*l.batch, l.batch, l.out_c, l.out_w*l.out_h, l.output, 1);
+        else activate_array_cpu_custom(l.output, l.outputs*l.batch, l.activation);
+    }
 
     if(l.binary || l.xnor) swap_binary(&l);
 
