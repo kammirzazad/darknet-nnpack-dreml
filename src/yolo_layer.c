@@ -432,12 +432,12 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
 
             for(class_id = 0; class_id < l.classes; ++class_id)
             {
-                l.delta[class_index + (class_id*l.w*l.h)] = INF; //inverse gradient
+                l.delta[class_index + (class_id*l.w*l.h)] = 0.0;
             }
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[box_index + (coord_id*l.w*l.h)] = INF; // inverse gradient
+                l.delta[box_index + (coord_id*l.w*l.h)] = 0.0;
             }
         }
     }

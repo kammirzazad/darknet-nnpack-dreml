@@ -38,8 +38,7 @@
 //#define IMG_SEG
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
-#define EPSILON 0.001
-#define	INF 1e+6
+#define EPSILON 1e-3
 
 #define SECRET_NUM -1234
 
