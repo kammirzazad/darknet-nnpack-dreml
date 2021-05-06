@@ -189,16 +189,15 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
 {
     int coord_id, class_id;
 
-    //if(l.anchor_boxes[n]==0)
-    //  printf("anchor_boxes[%f] is zero\n",l.anchor_boxes[n]);
-
     if(state.dreml_det_thresh == 0.0)
     {
-        l.delta[index + 4] = /*l.anchor_boxes[n] */ l.object_scale * (1 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+        const float objectness = l.output[index + 4];
+
+        l.delta[index + 4] = l.object_scale * objectness * logistic_gradient(l.output[index + 4]);
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
-            l.delta[index + coord_id] = /*l.anchor_boxes[n] */ EPSILON * l.coord_scale;
+            l.delta[index + coord_id] = l.coord_scale * objectness;
 
             // only first two coordinates go through logistic
             if(coord_id < 2)
@@ -211,7 +210,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
         {
             int index2 = index + l.coords + 1 + class_id;
 
-            l.delta[index2] = /*l.anchor_boxes[n] */ l.class_scale * (1 /*l.class_counts[class_id]*/ - l.output[index2]);
+            l.delta[index2] = l.class_scale * objectness * l.output[index2];
         }
     }
     else
