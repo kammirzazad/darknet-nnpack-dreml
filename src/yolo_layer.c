@@ -369,7 +369,9 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
 
     if(state.dreml_det_thresh == 0.0)
     {
-        l.delta[obj_index] = /*l.anchor_boxes[n] */ l.cls_normalizer * (1 - l.output[obj_index]);
+        const float objectness = l.output[obj_index];
+
+        l.delta[obj_index] = l.cls_normalizer * objectness;
 
         for(class_id = 0; class_id < l.classes; ++class_id)
         {
@@ -377,14 +379,14 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
 
             const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-            l.delta[index] = /*l.anchor_boxes[n] */ class_multiplier * (1 /*l.class_counts[class_id]*/ - l.output[index]);
+            l.delta[index] = class_multiplier * objectness * l.output[index];
         }
 
         for(coord_id = 0; coord_id < l.coords; coord_id++)
         {
             int index = box_index + (coord_id*l.w*l.h);
 
-            l.delta[index] = /*l.anchor_boxes[n] */ l.iou_normalizer * EPSILON;
+            l.delta[index] = l.iou_normalizer * objectness;
 
             if(coord_id < 2)
             {
@@ -410,7 +412,7 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
                 }
                 else
                 {
-                    l.delta[index] = class_multiplier * l.output[index];
+                    l.delta[index] = class_multiplier * (0 - l.output[index]);
                 }
             }
 
@@ -418,7 +420,7 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
             {
                 int index = box_index + (coord_id*l.w*l.h);
 
-                l.delta[index] = EPSILON * l.iou_normalizer;
+                l.delta[index] =  l.iou_normalizer;
 
                 if(coord_id < 2)
                 {
@@ -428,16 +430,25 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
         }
         else
         {
-            l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
+            l.delta[obj_index] = l.cls_normalizer * (0 - l.output[obj_index]);
 
             for(class_id = 0; class_id < l.classes; ++class_id)
             {
-                l.delta[class_index + (class_id*l.w*l.h)] = 0.0;
+                const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
+
+                l.delta[class_index + (class_id*l.w*l.h)] = class_multiplier * EPSILON;
             }
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[box_index + (coord_id*l.w*l.h)] = 0.0;
+                int index = box_index + (coord_id*l.w*l.h);
+
+                l.delta[index] =  l.iou_normalizer * EPSILON;
+
+                if(coord_id < 2)
+                {
+                    l.delta[index] *= logistic_gradient(l.output[index]);
+                }
             }
         }
     }
