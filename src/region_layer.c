@@ -213,6 +213,30 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
             l.delta[index2] = l.class_scale * objectness * l.output[index2];
         }
     }
+    else if(state.dreml_det_thresh == 1.0)
+    {
+        const float coeff = ((n<2)?1:0);
+
+        l.delta[index + 4] = coeff * l.object_scale * logistic_gradient(l.output[index + 4]);
+
+        for(coord_id = 0; coord_id < l.coords; coord_id++)
+        {
+            l.delta[index + coord_id] = coeff * l.coord_scale;
+
+            // only first two coordinates go through logistic
+            if(coord_id < 2)
+            {
+                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
+            }
+        }
+
+        for(class_id = 0; class_id < l.classes; ++class_id)
+        {
+            int index2 = index + l.coords + 1 + class_id;
+
+            l.delta[index2] = coeff * l.class_scale;
+        }
+    }
     else
     {
         if(l.output[index + 4] > state.dreml_det_thresh)
