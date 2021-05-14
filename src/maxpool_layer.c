@@ -382,7 +382,7 @@ void forward_maxpool_layer(const maxpool_layer l, network_state state)
 
 void backward_maxpool_layer(const maxpool_layer l, network_state state)
 {
-    #ifndef DYNAMIC_FMAP_PRUNING
+    //#ifndef DYNAMIC_FMAP_PRUNING
     int i;
     int h = l.out_h;
     int w = l.out_w;
@@ -392,6 +392,7 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
         int index = l.indexes[i];
         state.delta[index] += l.delta[i];
     }
+    /*
     #else
     int b, i, j, k, m, n;
     int w_offset = -l.pad / 2;
@@ -426,6 +427,7 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
         }
     }    
     #endif
+    */
 }
 
 
