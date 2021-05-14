@@ -406,6 +406,7 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
             for (i = 0; i < h; ++i) {
                 for (j = 0; j < w; ++j) {
                     int out_index = j + w*(i + h*(k + c*b));
+                    const float adjusted_delta = l.delta[out_index] / (l.size * l.size);
                     for (n = 0; n < l.size; ++n) {
                         for (m = 0; m < l.size; ++m) {
                             int cur_h = h_offset + i*l.stride_y + n;
@@ -417,7 +418,7 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
                             if (valid == 0)
                                continue;
                             
-                            state.delta[index] += l.delta[out_index];
+                            state.delta[index] += adjusted_delta;
                         }
                     }
                 }
