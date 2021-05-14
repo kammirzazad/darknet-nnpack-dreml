@@ -382,6 +382,7 @@ void forward_maxpool_layer(const maxpool_layer l, network_state state)
 
 void backward_maxpool_layer(const maxpool_layer l, network_state state)
 {
+    #ifndef DYNAMIC_FMAP_PRUNING
     int i;
     int h = l.out_h;
     int w = l.out_w;
@@ -391,6 +392,39 @@ void backward_maxpool_layer(const maxpool_layer l, network_state state)
         int index = l.indexes[i];
         state.delta[index] += l.delta[i];
     }
+    #else
+    int b, i, j, k, m, n;
+    int w_offset = -l.pad / 2;
+    int h_offset = -l.pad / 2;
+
+    int h = l.out_h;
+    int w = l.out_w;
+    int c = l.c;
+
+    for (b = 0; b < l.batch; ++b) {
+        for (k = 0; k < c; ++k) {
+            for (i = 0; i < h; ++i) {
+                for (j = 0; j < w; ++j) {
+                    int out_index = j + w*(i + h*(k + c*b));
+                    for (n = 0; n < l.size; ++n) {
+                        for (m = 0; m < l.size; ++m) {
+                            int cur_h = h_offset + i*l.stride_y + n;
+                            int cur_w = w_offset + j*l.stride_x + m;
+                            int index = cur_w + l.w*(cur_h + l.h*(k + b*l.c));
+                            int valid = (cur_h >= 0 && cur_h < l.h &&
+                                cur_w >= 0 && cur_w < l.w);
+                                
+                            if (valid == 0)
+                               continue;
+                            
+                            state.delta[index] += l.delta[out_index];
+                        }
+                    }
+                }
+            }
+        }
+    }    
+    #endif
 }
 
 
