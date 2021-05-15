@@ -215,7 +215,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
     }
     else if(state.dreml_det_thresh == 1.0)
     {
-        const float coeff = ((n<2)?1:0) / ( ((float)(2 * 10 * l.outputs)) / l.n );
+        const float coeff = ((n<2)?1:0) / ( ((float)(l.outputs)) / l.n );
 
         l.delta[index + 4] = coeff * l.object_scale * logistic_gradient(l.output[index + 4]);
 
