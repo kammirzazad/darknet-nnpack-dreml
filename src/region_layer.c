@@ -241,14 +241,14 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
     {
     	if(n>1)
     	{
-            for(int index=0; index<(l.coords+1+l.classes); index++)
-                l.delta[index] = 0.0;    	
+            for(int i=0; i<(l.coords+1+l.classes); i++)
+                l.delta[i] = 0.0;    	
     	}
     	else
     	{
             if(l.output[index + 4] > state.dreml_det_thresh)
             {
-                l.delta[index + 4] = l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+                l.delta[index + 4] = l.object_scale /* (1.0 - l.output[index + 4])*/ * logistic_gradient(l.output[index + 4]);
 
                 for(coord_id = 0; coord_id < l.coords; coord_id++)
                 {
@@ -270,17 +270,17 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                     // softmax gradient is itself
                     if(prob > state.dreml_det_thresh)
                     {
-                        l.delta[index2] = l.class_scale * (1.0 - l.output[index2]);
+                        l.delta[index2] = l.class_scale; //* (1.0 - l.output[index2]);
                     }
                     else
                     {
-                        l.delta[index2] = l.class_scale * (0.0 - l.output[index2]);
+                        l.delta[index2] = l.class_scale; //* (0.0 - l.output[index2]);
                     }
                 }
             }
             else
             {
-                l.delta[index + 4] = l.noobject_scale * (0.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+                l.delta[index + 4] = l.noobject_scale /* (0.0 - l.output[index + 4])*/ * logistic_gradient(l.output[index + 4]);
 
                 for(coord_id = 0; coord_id < l.coords; coord_id++)
                 {
