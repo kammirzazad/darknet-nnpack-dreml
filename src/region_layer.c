@@ -284,7 +284,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
 
                 for(coord_id = 0; coord_id < l.coords; coord_id++)
                 {
-                    l.delta[index + coord_id] = l.coord_scale * EPSILON;
+                    l.delta[index + coord_id] = l.coord_scale * 0.0; //EPSILON;
 
                     if(coord_id < 2)
                     {
@@ -296,7 +296,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 {
                     int index2 = index + l.coords + 1 + class_id;
 
-                    l.delta[index2] = l.class_scale * EPSILON;
+                    l.delta[index2] = l.class_scale * 0.0; //EPSILON;
                 }
             }
         }
