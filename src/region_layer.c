@@ -238,66 +238,58 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
         }
     }
     else
-    {
-    	if(n>1)
-    	{
-            for(int i=0; i<(l.coords+1+l.classes); i++)
-                l.delta[i] = 0.0;    	
-    	}
-    	else
-    	{
-            if(l.output[index + 4] > state.dreml_det_thresh)
+    {	
+        if(l.output[index + 4] > state.dreml_det_thresh)
+        {
+            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+
+            for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + 4] = l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale;
 
-                for(coord_id = 0; coord_id < l.coords; coord_id++)
+                // only first two coordinates go through logistic
+                if(coord_id < 2)
                 {
-                    l.delta[index + coord_id] = l.coord_scale;
-
-                    // only first two coordinates go through logistic
-                    if(coord_id < 2)
-                    {
-                        l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]); 
-                    }
-                }
-
-                for(class_id = 0; class_id < l.classes; ++class_id)
-                {
-                    int index2 = index + l.coords + 1 + class_id;
-
-                    const float prob = l.output[index + 4] * l.output[index2];
-
-                    // softmax gradient is itself
-                    if(prob > state.dreml_det_thresh)
-                    {
-                        l.delta[index2] = l.class_scale * (1.0 - l.output[index2]);
-                    }
-                    else
-                    {
-                        l.delta[index2] = l.class_scale * (0.0 - l.output[index2]);
-                    }
+                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]); 
                 }
             }
-            else
+
+            for(class_id = 0; class_id < l.classes; ++class_id)
             {
-                l.delta[index + 4] = l.noobject_scale * (0.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+                int index2 = index + l.coords + 1 + class_id;
 
-                for(coord_id = 0; coord_id < l.coords; coord_id++)
+                const float prob = l.output[index + 4] * l.output[index2];
+
+                // softmax gradient is itself
+                if(prob > state.dreml_det_thresh)
                 {
-                    l.delta[index + coord_id] = l.coord_scale * 0.0; //EPSILON;
-
-                    if(coord_id < 2)
-                    {
-                        l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-                    }
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - l.output[index2]);
                 }
-
-                for(class_id = 0; class_id < l.classes; ++class_id)
+                else
                 {
-                    int index2 = index + l.coords + 1 + class_id;
-
-                    l.delta[index2] = l.class_scale * 0.0; //EPSILON;
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (0.0 - l.output[index2]);
                 }
+            }
+       }
+       else
+       {
+            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale * (0.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+
+            for(coord_id = 0; coord_id < l.coords; coord_id++)
+            {
+                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale * 0.0; //EPSILON;
+
+                if(coord_id < 2)
+                {
+                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
+                }
+            }
+
+            for(class_id = 0; class_id < l.classes; ++class_id)
+            {
+                int index2 = index + l.coords + 1 + class_id;
+
+                l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * 0.0; //EPSILON;
             }
         }
     }
