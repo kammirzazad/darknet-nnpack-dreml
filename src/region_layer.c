@@ -273,7 +273,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
        }
        else
        {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale /* (0.0 - l.output[index + 4])*/ * logistic_gradient(l.output[index + 4]);
+            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale /* (0.0 - l.output[index + 4])*/ * logistic_gradient(l.output[index + 4]) * 0.0;
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
