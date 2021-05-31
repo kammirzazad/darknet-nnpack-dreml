@@ -352,7 +352,6 @@ void forward_region_layer(const region_layer l, network_state state)
         }
     }
 #endif
-    memcpy(l.output_history, l.output, l.outputs*sizeof(float));
     if(!state.train) return;
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     float avg_iou = 0;
@@ -508,6 +507,8 @@ void forward_region_layer(const region_layer l, network_state state)
     #endif
     *(l.cost) = pow(mag_array(l.delta, l.outputs * l.batch), 2);
     printf("Region Avg IOU: %f, Class: %f, Obj: %f, No Obj: %f, Avg Recall: %f,  count: %d\n", avg_iou/count, avg_cat/class_count, avg_obj/count, avg_anyobj/(l.w*l.h*l.n*l.batch), recall/count, count);
+
+    memcpy(l.output_history, l.output, l.outputs*sizeof(float));
 }
 
 void backward_region_layer(const region_layer l, network_state state)
