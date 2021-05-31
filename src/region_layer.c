@@ -48,6 +48,7 @@ region_layer make_region_layer(int batch, int w, int h, int n, int classes, int 
     fprintf(stderr, "detection\n");
     srand(time(0));
 
+    l.output_history = (float*)xcalloc(l.outputs, sizeof(float));
     l.anchor_boxes = (float*)xcalloc(n, sizeof(float));
     l.class_counts = (float*)xcalloc(classes, sizeof(float));
 
@@ -237,7 +238,7 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
             l.delta[index2] = coeff * l.class_scale;
         }
     }
-    else
+    else if(state.dreml_det_thresh > 0.0)
     {	
         if(l.output[index + 4] > state.dreml_det_thresh)
         {
@@ -293,6 +294,27 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
             }
         }
     }
+    else
+    {
+        l.delta[index + 4] = l.object_scale * (l.output_history[index + 4] - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+
+	for(coord_id = 0; coord_id < l.coords; coord_id++)
+        {
+            l.delta[index + coord_id] = l.coord_scale * (l.output_history[index + coord_id] - l.output[index + coord_id]);
+
+            if(coord_id < 2)
+            {
+                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
+            }
+        }
+
+        for(class_id = 0; class_id < l.classes; ++class_id)
+        {
+            int index2 = index + l.coords + 1 + class_id;
+
+            l.delta[index2] = l.class_scale * (l.output_history[index2] - l.output[index2]);
+        }
+    }
 }
 #endif
 
@@ -330,6 +352,7 @@ void forward_region_layer(const region_layer l, network_state state)
         }
     }
 #endif
+    memcpy(l.output_history, l.output, l.outputs*sizeof(float));
     if(!state.train) return;
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     float avg_iou = 0;

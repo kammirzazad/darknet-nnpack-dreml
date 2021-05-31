@@ -461,6 +461,7 @@ struct layer {
     int     enable_bias;
     float * class_counts;
     float * anchor_boxes;
+    float * output_history;
 
     struct layer *input_layer;
     struct layer *self_layer;
