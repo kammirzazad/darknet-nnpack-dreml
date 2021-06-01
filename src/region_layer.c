@@ -239,19 +239,21 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
         }
     }
     else if(state.dreml_det_thresh > 0.0)
-    {	
-        if(l.output[index + 4] > state.dreml_det_thresh)
+    {
+        const float objectness = l.output[index + 4];
+	
+        if(objectness > state.dreml_det_thresh)
         {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
+            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1.0 - objectness) * logistic_gradient(objectness);
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale;
+                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale * (1.0 - objectness);
 
                 // only first two coordinates go through logistic
                 if(coord_id < 2)
                 {
-                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]); 
+                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
                 }
             }
 
@@ -264,17 +266,17 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 // softmax gradient is itself
                 if(prob > state.dreml_det_thresh)
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - l.output[index2]);
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - objectness) * (1.0 - l.output[index2]);
                 }
                 else
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (0.0 - l.output[index2]);
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - objectness) * (0.0 - l.output[index2]);
                 }
             }
        }
        else
        {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale * (0.0 - l.output[index + 4]) * logistic_gradient(l.output[index + 4]) * 0.0; //EPSILON
+            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale * (0.0 - objectness) * logistic_gradient(objectness) * 0.0; //EPSILON
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
