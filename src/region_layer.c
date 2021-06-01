@@ -244,11 +244,11 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
 	
         if(objectness > state.dreml_det_thresh)
         {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1.0 - objectness) * logistic_gradient(objectness);
+            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale /* (1.0 - objectness) */ * logistic_gradient(objectness);
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale * (1.0 - objectness) * 0.0;
+                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale;
 
                 // only first two coordinates go through logistic
                 if(coord_id < 2)
@@ -266,11 +266,11 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 // softmax gradient is itself
                 if(prob > state.dreml_det_thresh)
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - objectness) * (1.0 - l.output[index2]) * 0.0;
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; //* (1.0 - objectness) * (1.0 - l.output[index2]);
                 }
                 else
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - objectness) * (0.0 - l.output[index2]) * 0.0;
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; //* (1.0 - objectness) * (0.0 - l.output[index2]);
                 }
             }
        }
