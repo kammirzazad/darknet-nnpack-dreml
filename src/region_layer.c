@@ -240,15 +240,38 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
     }
     else if(state.dreml_det_thresh > 0.0)
     {
+        /*
+	const int size = l.coords + l.classes + 1;
+
+        const int index_i_plus = size * (j*l.w*l.n + (i+1)*l.n + n);
+        const int index_j_plus = size * ((j+1)*l.w*l.n + i*l.n + n);
+        const int index_i_minus = size * (j*l.w*l.n + (i-1)*l.n + n);
+        const int index_j_minus = size * ((j-1)*l.w*l.n + i*l.n + n);
+        
+        const float obj_i_plus = (i!=l.w-1)? l.output[index_i_plus+4] : 0.0;
+        const float obj_j_plus = (j!=l.h-1)? l.output[index_j_plus+4] : 0.0;
+        const float obj_i_minus = (i!=0)? l.output[index_i_minus+4] : 0.0;
+        const float obj_j_minus = (j!=0)? l.output[index_j_minus+4] : 0.0;
+        */
+
         const float objectness = l.output[index + 4];
+
+        float maxObj = objectness;
+
+        /*
+        if(obj_i_plus  > maxObj) maxObj = obj_i_plus;
+        if(obj_j_plus  > maxObj) maxObj = obj_j_plus;
+        if(obj_i_minus > maxObj) maxObj = obj_i_minus;
+        if(obj_j_minus > maxObj) maxObj = obj_j_minus;
+        */
 	
-        if(objectness > state.dreml_det_thresh)
+        if(maxObj > state.dreml_det_thresh)
         {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale /* (1.0 - objectness) */ * logistic_gradient(objectness);
+            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale /* maxObj */ * logistic_gradient(maxObj);
 
             for(coord_id = 0; coord_id < l.coords; coord_id++)
             {
-                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale;
+                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale; // * maxObj;
 
                 // only first two coordinates go through logistic
                 if(coord_id < 2)
@@ -266,11 +289,11 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
                 // softmax gradient is itself
                 if(prob > state.dreml_det_thresh)
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; //* (1.0 - objectness) * (1.0 - l.output[index2]);
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; // * maxObj; // * (1.0 - l.output[index2]);
                 }
                 else
                 {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; //* (1.0 - objectness) * (0.0 - l.output[index2]);
+                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale; // * maxObj; //* (0.0 - l.output[index2]);
                 }
             }
        }
