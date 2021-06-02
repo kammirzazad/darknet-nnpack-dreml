@@ -492,6 +492,7 @@ int save_detections(image im, detection *dets, int num, float thresh, char **nam
     for(i = 0; i < num; ++i){
         //char labelstr[4096] = {0};
         int class = -1;
+/*
         for(j = 0; j < classes; ++j){
             if (dets[i].prob[j] > thresh){
                 if (class < 0) {
@@ -503,7 +504,13 @@ int save_detections(image im, detection *dets, int num, float thresh, char **nam
                 }
             }
         }
-        if(class >= 0){
+*/
+
+        for(class = 0; class < classes; ++class){
+
+            if (dets[i].prob[class] <= thresh)
+                continue;
+
             box b = dets[i].bbox;
             //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
 
