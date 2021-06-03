@@ -187,11 +187,13 @@ void backward_shortcut_layer(const layer l, network_state state)
     else if (l.activation == MISH) gradient_array_mish(l.outputs*l.batch, l.activation_input, l.delta);
     else gradient_array(l.output, l.outputs*l.batch, l.activation, l.delta);
 
+    /*
     backward_shortcut_multilayer_cpu(l.outputs * l.batch, l.outputs, l.batch, l.n, l.input_sizes,
         l.layers_delta, state.delta, l.delta, l.weights, l.weight_updates, l.nweights, state.input, l.layers_output, l.weights_normalizion);
+    */
 
-    //axpy_cpu(l.outputs*l.batch, 1, l.delta, 1, state.delta, 1);
-    //shortcut_cpu(l.batch, l.out_w, l.out_h, l.out_c, l.delta, l.w, l.h, l.c, state.net.layers[l.index].delta);
+    axpy_cpu(l.outputs*l.batch, 1, l.delta, 1, state.delta, 1);
+    shortcut_cpu(l.batch, l.out_w, l.out_h, l.out_c, l.delta, l.w, l.h, l.c, state.net.layers[l.index].delta);
 }
 
 void update_shortcut_layer(layer l, int batch, float learning_rate_init, float momentum, float decay)
