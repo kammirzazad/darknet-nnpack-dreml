@@ -95,7 +95,7 @@ void forward_softmax_layer(const softmax_layer l, network_state net)
 
 			int index = (k*l.h*l.w)+(j*l.w)+i;
 
-			l.delta[index] = ((k==max_idx)? 0.1 : 0.0); //t - l.output[index];
+			l.delta[index] = ((k==max_idx)? 1e-3 : 0.0); //t - l.output[index];
 		}
 	}
     #else
