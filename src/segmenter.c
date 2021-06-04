@@ -194,7 +194,8 @@ void predict_segmenter(char *datafile, char *cfg, char *weights, char *filename)
             strtok(input, "\n");
         }
         image im = load_image_color(input, 0, 0);
-        image sized = letterbox_image(im, net->w, net->h);
+        //image sized = letterbox_image(im, net->w, net->h);
+        image sized = resize_image(im, net->w, net->h);
 
         float *X = sized.data;
         time=clock();
