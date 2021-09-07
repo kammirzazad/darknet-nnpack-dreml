@@ -751,6 +751,7 @@ typedef struct network_state {
     int index;
     network net;
 
+    int topN;
     float dreml_det_thresh;
 } network_state;
 

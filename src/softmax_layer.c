@@ -75,6 +75,21 @@ void forward_softmax_layer(const softmax_layer l, network_state net)
     for(int j=0; j<l.h; j++)
 	for(int i=0; i<l.w; i++)
 	{
+		setTopDREML(
+			&l.output[(j*l.w)+i],
+			&l.delta[(j*l.w)+i],
+			l.h*l.w, 
+			l.classes,
+			net.topN
+		);
+
+		for(int k=0; k<l.c; k++)
+		{
+			int index = (k*l.h*l.w)+(j*l.w)+i;
+			l.delta[index] *= EPSILON;
+		}
+
+		/*
 		int max_idx = -1;
 		float max_val = 0;
 
@@ -99,6 +114,7 @@ void forward_softmax_layer(const softmax_layer l, network_state net)
 			l.delta[index] = t - l.output[index];
 			//l.delta[index] = l.output[index];
 		}
+		*/
 	}
     #else
     if(net.truth && !l.noloss){

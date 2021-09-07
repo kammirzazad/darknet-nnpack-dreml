@@ -207,11 +207,18 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
             }
         }
 
+	setTopDREML(
+            &l.output[index + l.coords + 1], 
+            &l.delta[index + l.coords + 1], 
+            1, 
+            l.classes,
+            state.topN
+        );
+
         for(class_id = 0; class_id < l.classes; ++class_id)
         {
             int index2 = index + l.coords + 1 + class_id;
-
-            l.delta[index2] = l.class_scale * objectness * l.output[index2];
+            l.delta[index2] = l.class_scale * objectness * l.delta[index2]; //l.output[index2];
         }
     }
     else if(state.dreml_det_thresh == 1.0)

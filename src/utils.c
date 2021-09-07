@@ -1053,3 +1053,39 @@ int make_directory(char *path, int mode)
     return mkdir(path, mode);
 #endif
 }
+
+#ifdef CUSTOM_BACKPROP
+void setTopDREML(float* src, float* dst, int stride, int size, int n)
+{
+    int* indice = (int*)malloc(size*sizeof(int));
+
+    for(int i=0; i<size; i++) {
+        indice[i] = i;
+        dst[stride*i] = src[stride*i];
+    }
+
+    for(int i=0; i<size; i++)
+        for(int j=0; j<size-i-1; j++)
+            // next one is larger, swap them; move smallest to the end
+            if(dst[j+0] < dst[j+1]) {
+                int t0 = indice[j+0];
+                indice[j+0] = indice[j+1];
+                indice[j+1] = t0;
+
+                float t1 = dst[j+0];
+                dst[j+0] = dst[j+1];
+                dst[j+1] = t1;
+            }
+
+    // set all to zero
+    for(int i=0; i<size; i++)
+        dst[stride*i] = 0.0;
+
+    // set top "n" to 1.0
+    for(int i=0; i<n; i++)
+        dst[stride*indice[i]] = 1.0;
+
+    free(indice);
+}
+#endif
+
