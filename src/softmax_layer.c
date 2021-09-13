@@ -79,7 +79,7 @@ void forward_softmax_layer(const softmax_layer l, network_state net)
 			&l.output[(j*l.w)+i],
 			&l.delta[(j*l.w)+i],
 			l.h*l.w, 
-			l.classes,
+			l.c,
 			net.topN
 		);
 
