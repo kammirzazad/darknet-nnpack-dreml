@@ -365,133 +365,30 @@ static int entry_index(layer l, int batch, int location, int entry)
 void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, int box_index, int i, int j, int b, int n)
 {
     int class_id, coord_id;
-    int class_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, l.coords + 1);
+    int class_index = entry_index(l, b, n * l.w * l.h + j * l.w + i, l.coords + 1);
 
-    if(state.dreml_det_thresh == 0.0)
-    {
-        const float objectness = l.output[obj_index];
+    l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
 
-        l.delta[obj_index] = l.cls_normalizer * objectness;
-
-        for(class_id = 0; class_id < l.classes; ++class_id)
-        {
-            int index = class_index + (class_id*l.w*l.h);
-
-            const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
-
-            l.delta[index] = class_multiplier * objectness * l.output[index];
-        }
-
-        for(coord_id = 0; coord_id < l.coords; coord_id++)
-        {
-            int index = box_index + (coord_id*l.w*l.h);
-
-            l.delta[index] = l.iou_normalizer * objectness;
-
-            if(coord_id < 2)
-            {
-                l.delta[index] *= logistic_gradient(l.output[index]);
-            }
-        }
-    }
-    else
-    {
-        if(l.output[obj_index] > state.dreml_det_thresh)
-        {
-            l.delta[obj_index] = l.cls_normalizer * (1 - l.output[obj_index]);
-
-            for(class_id = 0; class_id < l.classes; ++class_id)
-            {
-                int index = class_index + (class_id*l.w*l.h);
-
-                const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
-
-                if((l.output[obj_index] * l.output[index]) > state.dreml_det_thresh)
-                {
-                    l.delta[index] = class_multiplier * (1 - l.output[index]);
-                }
-                else
-                {
-                    l.delta[index] = class_multiplier * (0 - l.output[index]);
-                }
-            }
-
-            for(coord_id = 0; coord_id < l.coords; coord_id++)
-            {
-                int index = box_index + (coord_id*l.w*l.h);
-
-                l.delta[index] =  l.iou_normalizer;
-
-                if(coord_id < 2)
-                {
-                    l.delta[index] *= logistic_gradient(l.output[index]);
-                }
-            }
-        }
-        else
-        {
-            l.delta[obj_index] = l.cls_normalizer * (0 - l.output[obj_index]);
-
-            for(class_id = 0; class_id < l.classes; ++class_id)
-            {
-                const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
-
-                l.delta[class_index + (class_id*l.w*l.h)] = class_multiplier * EPSILON;
-            }
-
-            for(coord_id = 0; coord_id < l.coords; coord_id++)
-            {
-                int index = box_index + (coord_id*l.w*l.h);
-
-                l.delta[index] =  l.iou_normalizer * EPSILON;
-
-                if(coord_id < 2)
-                {
-                    l.delta[index] *= logistic_gradient(l.output[index]);
-                }
-            }
-        }
-    }
-/*
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
-        int index = class_index + (class_id*l.w*l.h);
+        int index = class_index + (class_id * l.w * l.h);
 
-        if((l.output[obj_index] * l.output[index]) > DET_THRESH)
-        {
-            const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
-	    // in multi-label classification, all valid detections have max importance/loss
-            l.delta[index] = class_multiplier; // * l.output[index];
-            classCount++; 
-        }
-        else
-        {
-            l.delta[index] = 0;
-        }
+        const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
+
+        l.delta[index] = class_multiplier * l.output[index];
     }
 
-    if(classCount!=0)
+    for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
-        for(coord_id = 0; coord_id < l.coords; coord_id++)
+        int index = box_index + (coord_id * l.w * l.h);
+
+        l.delta[index] =  l.iou_normalizer;
+
+        if(coord_id < 2)
         {
-            int index = box_index + (coord_id*l.w*l.h);
-
-            l.delta[index] = l.iou_normalizer;
-
-            if(coord_id < 2)
-            {
-                l.delta[index] *= logistic_gradient(l.output[index]);
-            }
+            l.delta[index] *= logistic_gradient(l.output[index]);
         }
     }
-    else
-    {
-        for(coord_id = 0; coord_id < l.coords; coord_id++)
-        {
-             l.delta[box_index + (coord_id*l.w*l.h)] = 0;
-        }
-    }
-*/
 }
 #endif
 
@@ -563,6 +460,22 @@ void forward_yolo_layer(const layer l, network_state state)
     // delta is zeroed
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     if (!state.train) return;
+
+    #ifdef CUSTOM_BACKPROP
+    for (b = 0; b < l.batch; ++b) {
+        for (j = 0; j < l.h; ++j) {
+            for (i = 0; i < l.w; ++i) {
+                for (n = 0; n < l.n; ++n) {
+                    int box_index = entry_index(l, b, n * l.w * l.h + j * l.w + i, 0);
+                    int obj_index = entry_index(l, b, n * l.w * l.h + j * l.w + i, 4);
+                    adjustYoloLossesDREML(l, state, obj_index, box_index, i, j, b, n);
+                }
+            }
+        }
+    }
+    return;
+    #endif
+
     //float avg_iou = 0;
     float tot_iou = 0;
     float tot_giou = 0;
@@ -634,10 +547,6 @@ void forward_yolo_layer(const layer l, network_state state)
                         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
                         delta_yolo_box(truth, l.output, l.biases, l.mask[n], box_index, i, j, l.w, l.h, state.net.w, state.net.h, l.delta, (2 - truth.w*truth.h), l.w*l.h, l.iou_normalizer * class_multiplier, l.iou_loss, 1, l.max_delta);
                     }
-
-                    #ifdef CUSTOM_BACKPROP
-                    adjustYoloLossesDREML(l,state,obj_index,box_index,i,j,b,n);
-                    #endif
                 }
             }
         }

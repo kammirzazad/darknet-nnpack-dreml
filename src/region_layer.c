@@ -190,139 +190,27 @@ void  adjustRegionLossesDREML(const region_layer l, network_state state, int ind
 {
     int coord_id, class_id;
 
-    if(state.dreml_det_thresh == 0.0)
+    const float objectness = l.output[index + 4];
+
+    l.delta[index + 4] = l.object_scale * objectness * logistic_gradient(objectness);
+
+    for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
-        const float objectness = l.output[index + 4];
+        l.delta[index + coord_id] = l.coord_scale;
 
-        l.delta[index + 4] = l.object_scale * objectness * logistic_gradient(l.output[index + 4]);
-
-        for(coord_id = 0; coord_id < l.coords; coord_id++)
+        // only first two coordinates go through logistic
+        if(coord_id < 2)
         {
-            l.delta[index + coord_id] = l.coord_scale * objectness;
-
-            // only first two coordinates go through logistic
-            if(coord_id < 2)
-            {
-                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-            }
-        }
-
-	setTopDREML(
-            &l.output[index + l.coords + 1], 
-            &l.delta[index + l.coords + 1], 
-            1, 
-            l.classes,
-            state.topN
-        );
-
-        for(class_id = 0; class_id < l.classes; ++class_id)
-        {
-            int index2 = index + l.coords + 1 + class_id;
-            l.delta[index2] = l.class_scale * objectness * l.delta[index2]; //l.output[index2];
+            l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
         }
     }
-    else if(state.dreml_det_thresh == 1.0)
+
+    for(class_id = 0; class_id < l.classes; ++class_id)
     {
-        const float coeff = ((n<2)?1:0) / ( ((float)(l.outputs)) / l.n );
+        int index2 = index + l.coords + 1 + class_id;
 
-        l.delta[index + 4] = coeff * l.object_scale * logistic_gradient(l.output[index + 4]);
-
-        for(coord_id = 0; coord_id < l.coords; coord_id++)
-        {
-            l.delta[index + coord_id] = coeff * l.coord_scale;
-
-            // only first two coordinates go through logistic
-            if(coord_id < 2)
-            {
-                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-            }
-        }
-
-        for(class_id = 0; class_id < l.classes; ++class_id)
-        {
-            int index2 = index + l.coords + 1 + class_id;
-
-            l.delta[index2] = coeff * l.class_scale;
-        }
-    }
-    else if(state.dreml_det_thresh > 0.0)
-    {
-        const float objectness = l.output[index + 4];
-	
-        if(objectness > state.dreml_det_thresh)
-        {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.object_scale * (1.0 - objectness) * logistic_gradient(objectness);
-
-            for(coord_id = 0; coord_id < l.coords; coord_id++)
-            {
-                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale; // * maxObj;
-
-                // only first two coordinates go through logistic
-                if(coord_id < 2)
-                {
-                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-                }
-            }
-
-            for(class_id = 0; class_id < l.classes; ++class_id)
-            {
-                int index2 = index + l.coords + 1 + class_id;
-
-                const float prob = l.output[index + 4] * l.output[index2];
-
-                // softmax gradient is itself
-                if(prob > state.dreml_det_thresh)
-                {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (1.0 - l.output[index2]);
-                }
-                else
-                {
-                    l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * (0.0 - l.output[index2]);
-                }
-            }
-       }
-       else
-       {
-            l.delta[index + 4] = l.anchor_boxes[n] * l.noobject_scale * (0.0 - objectness) * logistic_gradient(objectness);
-
-            for(coord_id = 0; coord_id < l.coords; coord_id++)
-            {
-                l.delta[index + coord_id] = l.anchor_boxes[n] * l.coord_scale * EPSILON;
-
-                if(coord_id < 2)
-                {
-                    l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-                }
-            }
-
-            for(class_id = 0; class_id < l.classes; ++class_id)
-            {
-                int index2 = index + l.coords + 1 + class_id;
-
-                l.delta[index2] = l.anchor_boxes[n] * l.class_counts[class_id] * l.class_scale * EPSILON;
-            }
-        }
-    }
-    else
-    {
-        l.delta[index + 4] = l.object_scale * (l.output_history[index + 4] - l.output[index + 4]) * logistic_gradient(l.output[index + 4]);
-
-	for(coord_id = 0; coord_id < l.coords; coord_id++)
-        {
-            l.delta[index + coord_id] = l.coord_scale * (l.output_history[index + coord_id] - l.output[index + coord_id]);
-
-            if(coord_id < 2)
-            {
-                l.delta[index + coord_id] *= logistic_gradient(l.output[index + coord_id]);
-            }
-        }
-
-        for(class_id = 0; class_id < l.classes; ++class_id)
-        {
-            int index2 = index + l.coords + 1 + class_id;
-
-            l.delta[index2] = l.class_scale * (l.output_history[index2] - l.output[index2]);
-        }
+        // softmax gradient is itself
+        l.delta[index2] = l.class_scale * l.output[index2];
     }
 }
 #endif
@@ -363,6 +251,21 @@ void forward_region_layer(const region_layer l, network_state state)
 #endif
     if(!state.train) return;
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
+
+    #ifdef CUSTOM_BACKPROP
+    for (b = 0; b < l.batch; ++b) {
+        for (j = 0; j < l.h; ++j) {
+            for (i = 0; i < l.w; ++i) {
+                for (n = 0; n < l.n; ++n) {
+                    int index = size * (j * l.w * l.n + i * l.n + n) + b * l.outputs;
+                    adjustRegionLossesDREML(l, state, index, i, j, n);
+                }
+            }
+        }
+    }
+    return;
+    #endif
+
     float avg_iou = 0;
     float recall = 0;
     float avg_cat = 0;
@@ -443,10 +346,6 @@ void forward_region_layer(const region_layer l, network_state state)
                         }
                         delta_region_box(truth, l.output, l.biases, n, index, i, j, l.w, l.h, l.delta, .01);
                     }
-
-                    #ifdef CUSTOM_BACKPROP
-                    adjustRegionLossesDREML(l,state,index,i,j,n);
-                    #endif
                 }
             }
         }
