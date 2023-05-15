@@ -367,7 +367,9 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
     int class_id, coord_id;
     int class_index = entry_index(l, b, n * l.w * l.h + j * l.w + i, l.coords + 1);
 
-    l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
+    const float objectness = l.output[obj_index];
+
+    l.delta[obj_index] = l.cls_normalizer * objectness;
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
@@ -375,14 +377,14 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
 
         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-        l.delta[index] = class_multiplier * l.output[index];
+        l.delta[index] = class_multiplier * objectness * l.output[index];
     }
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
         int index = box_index + (coord_id * l.w * l.h);
 
-        l.delta[index] =  l.iou_normalizer;
+        l.delta[index] =  l.iou_normalizer * objectness;
 
         if(coord_id < 2)
         {
