@@ -186,6 +186,12 @@ ious delta_yolo_box(box truth, float *x, float *biases, int n, int index, int i,
     // avoid nan in dx_box_iou
     if (pred.w == 0) { pred.w = 1.0; }
     if (pred.h == 0) { pred.h = 1.0; }
+    #ifdef CUSTOM_BACKPROP
+    delta[index + 0 * stride] += scale * iou_normalizer;
+    delta[index + 1 * stride] += scale * iou_normalizer;
+    delta[index + 2 * stride] += scale * iou_normalizer;
+    delta[index + 3 * stride] += scale * iou_normalizer;
+    #else
     if (iou_loss == MSE)    // old loss
     {
         float tx = (truth.x*lw - i);
@@ -254,6 +260,7 @@ ious delta_yolo_box(box truth, float *x, float *biases, int n, int index, int i,
         delta[index + 2 * stride] += dw;
         delta[index + 3 * stride] += dh;
     }
+    #endif
 
     return all_ious;
 }
@@ -300,7 +307,11 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
 #else
     int n;
     if (delta[index + stride*class_id]){
+        #ifdef CUSTOM_BACKPROP
+        delta[index + stride*class_id] = label_smooth_eps + output[index + stride*class_id];
+        #else
         delta[index + stride*class_id] = (1 - label_smooth_eps) - output[index + stride*class_id];
+        #endif
         if (classes_multipliers) delta[index + stride*class_id] *= classes_multipliers[class_id];
         if(avg_cat) *avg_cat += output[index + stride*class_id];
         return;
@@ -318,7 +329,11 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
         //float grad = (1 - pt) * (2 * pt*logf(pt) + pt - 1);    // https://github.com/unsky/focal-loss
 
         for (n = 0; n < classes; ++n) {
+            #ifdef CUSTOM_BACKPROP
+            delta[index + stride*n] = (((n == class_id) ? 1 : -1) * output[index + stride*n]);
+            #else
             delta[index + stride*n] = (((n == class_id) ? 1 : 0) - output[index + stride*n]);
+            #endif
 
             delta[index + stride*n] *= alpha*grad;
 
@@ -328,7 +343,11 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
     else {
         // default
         for (n = 0; n < classes; ++n) {
+            #ifdef CUSTOM_BACKPROP
+            delta[index + stride*n] = (n == class_id) ? (output[index + stride*n] + label_smooth_eps) : ((0 + label_smooth_eps/classes) - output[index + stride*n]);
+            #else
             delta[index + stride*n] = ((n == class_id) ? (1 - label_smooth_eps) : (0 + label_smooth_eps/classes)) - output[index + stride*n];
+            #endif
             if (classes_multipliers && n == class_id) delta[index + stride*class_id] *= classes_multipliers[class_id];
             if (n == class_id && avg_cat) *avg_cat += output[index + stride*n];
         }
@@ -361,6 +380,7 @@ static int entry_index(layer l, int batch, int location, int entry)
 }
 
 
+/*
 #ifdef CUSTOM_BACKPROP
 void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, int box_index, int i, int j, int b, int n)
 {
@@ -393,6 +413,7 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
     }
 }
 #endif
+*/
 
 
 #ifdef IMG_SEG
@@ -463,6 +484,7 @@ void forward_yolo_layer(const layer l, network_state state)
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     if (!state.train) return;
 
+    /*
     #ifdef CUSTOM_BACKPROP
     for (b = 0; b < l.batch; ++b) {
         for (j = 0; j < l.h; ++j) {
@@ -477,6 +499,7 @@ void forward_yolo_layer(const layer l, network_state state)
     }
     return;
     #endif
+    */
 
     //float avg_iou = 0;
     float tot_iou = 0;
@@ -539,7 +562,11 @@ void forward_yolo_layer(const layer l, network_state state)
                         l.delta[obj_index] = 0;
                     }
                     if (best_iou > l.truth_thresh) {
+                        #ifdef CUSTOM_BACKPROP
+                        l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
+                        #else
                         l.delta[obj_index] = l.cls_normalizer * (1 - l.output[obj_index]);
+                        #endif
 
                         int class_id = state.truth[best_t*(4 + 1) + b*l.truths + 4];
                         if (l.map) class_id = l.map[class_id];
@@ -606,7 +633,11 @@ void forward_yolo_layer(const layer l, network_state state)
 
                 int obj_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4);
                 avg_obj += l.output[obj_index];
+                #ifdef CUSTOM_BACKPROP
+                l.delta[obj_index] = class_multiplier * l.cls_normalizer * l.output[obj_index];
+                #else
                 l.delta[obj_index] = class_multiplier * l.cls_normalizer * (1 - l.output[obj_index]);
+                #endif
 
                 int class_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4 + 1);
                 delta_yolo_class(l.output, l.delta, class_index, class_id, l.classes, l.w*l.h, &avg_cat, l.focal_loss, l.label_smooth_eps, l.classes_multipliers, 0);
@@ -650,7 +681,11 @@ void forward_yolo_layer(const layer l, network_state state)
 
                         int obj_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4);
                         avg_obj += l.output[obj_index];
+                        #ifdef CUSTOM_BACKPROP
+                        l.delta[obj_index] = class_multiplier * l.cls_normalizer * l.output[obj_index];
+                        #else
                         l.delta[obj_index] = class_multiplier * l.cls_normalizer * (1 - l.output[obj_index]);
+                        #endif
 
                         int class_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4 + 1);
                         delta_yolo_class(l.output, l.delta, class_index, class_id, l.classes, l.w*l.h, &avg_cat, l.focal_loss, l.label_smooth_eps, l.classes_multipliers, 0);
