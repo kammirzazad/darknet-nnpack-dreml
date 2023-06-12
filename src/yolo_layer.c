@@ -308,7 +308,7 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
     int n;
     if (delta[index + stride*class_id]){
         #ifdef CUSTOM_BACKPROP
-        delta[index + stride*class_id] = label_smooth_eps + output[index + stride*class_id];
+        delta[index + stride*class_id] = 0 - label_smooth_eps - output[index + stride*class_id];
         #else
         delta[index + stride*class_id] = (1 - label_smooth_eps) - output[index + stride*class_id];
         #endif
@@ -330,7 +330,7 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
 
         for (n = 0; n < classes; ++n) {
             #ifdef CUSTOM_BACKPROP
-            delta[index + stride*n] = (((n == class_id) ? 1 : -1) * output[index + stride*n]);
+            delta[index + stride*n] = (((n == class_id) ? 0 : 1) - output[index + stride*n]);
             #else
             delta[index + stride*n] = (((n == class_id) ? 1 : 0) - output[index + stride*n]);
             #endif
@@ -344,7 +344,7 @@ void delta_yolo_class(float *output, float *delta, int index, int class_id, int 
         // default
         for (n = 0; n < classes; ++n) {
             #ifdef CUSTOM_BACKPROP
-            delta[index + stride*n] = (n == class_id) ? (output[index + stride*n] + label_smooth_eps) : ((0 + label_smooth_eps/classes) - output[index + stride*n]);
+            delta[index + stride*n] = ((n == class_id) ? (0 + label_smooth_eps/classes) : (1 - label_smooth_eps)) - output[index + stride*n];
             #else
             delta[index + stride*n] = ((n == class_id) ? (1 - label_smooth_eps) : (0 + label_smooth_eps/classes)) - output[index + stride*n];
             #endif
@@ -380,7 +380,6 @@ static int entry_index(layer l, int batch, int location, int entry)
 }
 
 
-/*
 #ifdef CUSTOM_BACKPROP
 void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, int box_index, int i, int j, int b, int n)
 {
@@ -413,7 +412,6 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
     }
 }
 #endif
-*/
 
 
 #ifdef IMG_SEG
@@ -557,13 +555,17 @@ void forward_yolo_layer(const layer l, network_state state)
                     }
                     int obj_index = entry_index(l, b, n*l.w*l.h + j*l.w + i, 4);
                     avg_anyobj += l.output[obj_index];
+                    #ifdef CUSTOM_BACKPROP
+                    l.delta[obj_index] = l.cls_normalizer * (0 - l.output[obj_index]);
+                    #else
                     l.delta[obj_index] = l.cls_normalizer * (0 - l.output[obj_index]);
                     if (best_match_iou > l.ignore_thresh) {
                         l.delta[obj_index] = 0;
                     }
+                    #endif
                     if (best_iou > l.truth_thresh) {
                         #ifdef CUSTOM_BACKPROP
-                        l.delta[obj_index] = l.cls_normalizer * l.output[obj_index];
+                        l.delta[obj_index] = l.cls_normalizer * (0 - l.output[obj_index]);
                         #else
                         l.delta[obj_index] = l.cls_normalizer * (1 - l.output[obj_index]);
                         #endif
@@ -634,7 +636,7 @@ void forward_yolo_layer(const layer l, network_state state)
                 int obj_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4);
                 avg_obj += l.output[obj_index];
                 #ifdef CUSTOM_BACKPROP
-                l.delta[obj_index] = class_multiplier * l.cls_normalizer * l.output[obj_index];
+                l.delta[obj_index] = class_multiplier * l.cls_normalizer * (0 - l.output[obj_index]);
                 #else
                 l.delta[obj_index] = class_multiplier * l.cls_normalizer * (1 - l.output[obj_index]);
                 #endif
@@ -682,7 +684,7 @@ void forward_yolo_layer(const layer l, network_state state)
                         int obj_index = entry_index(l, b, mask_n*l.w*l.h + j*l.w + i, 4);
                         avg_obj += l.output[obj_index];
                         #ifdef CUSTOM_BACKPROP
-                        l.delta[obj_index] = class_multiplier * l.cls_normalizer * l.output[obj_index];
+                        l.delta[obj_index] = class_multiplier * l.cls_normalizer * (0 - l.output[obj_index]);
                         #else
                         l.delta[obj_index] = class_multiplier * l.cls_normalizer * (1 - l.output[obj_index]);
                         #endif
