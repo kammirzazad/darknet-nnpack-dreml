@@ -99,6 +99,7 @@ int make_directory(char *path, int mode);
 
 #ifdef CUSTOM_BACKPROP
 void setTopDREML(float* src, float* dst, int stride, int size, int n);
+float getBufferStdev(float** buffer, int index);
 #endif
 
 #define max_val_cmp(a,b) (((a) > (b)) ? (a) : (b))

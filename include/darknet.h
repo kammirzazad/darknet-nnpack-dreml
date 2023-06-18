@@ -39,6 +39,7 @@
 #define CUSTOM_BACKPROP
 #define DYNAMIC_FMAP_PRUNING
 #define EPSILON 1e-8
+#define	QUEUE_SIZE 2
 
 #define SECRET_NUM -1234
 
@@ -508,6 +509,11 @@ struct layer {
     tree *softmax_tree;
 
     size_t workspace_size;
+
+#ifdef CUSTOM_BACKPROP
+    int	  * dreml_index;
+    float * dreml_buffer[QUEUE_SIZE];
+#endif
 
 #ifdef GPU
     int *indexes_gpu;

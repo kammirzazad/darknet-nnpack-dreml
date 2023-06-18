@@ -1087,5 +1087,21 @@ void setTopDREML(float* src, float* dst, int stride, int size, int n)
 
     free(indice);
 }
+
+float getBufferStdev(float** buffer, int index)
+{
+    float avg = 0.0;
+    float stdev = 0.0;
+
+    for(int i=0; i<QUEUE_SIZE; i++)
+	avg += buffer[i][index];
+
+    avg /= QUEUE_SIZE;
+
+    for(int i=0; i<QUEUE_SIZE; i++)
+        stdev += pow((buffer[i][index]-avg),2);
+
+    return sqrt(stdev/QUEUE_SIZE);
+}
 #endif
 

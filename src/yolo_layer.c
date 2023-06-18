@@ -93,6 +93,15 @@ layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int 
     l.anchor_boxes = (float*)xcalloc(n, sizeof(float));
     l.class_counts = (float*)xcalloc(classes, sizeof(float));
 
+    // Data structures for DREML
+    #ifdef CUSTOM_BACKPROP
+    l.dreml_index = (int*)xcalloc(1, sizeof(int));
+    *l.dreml_index = 0;
+
+    for(i=0; i<QUEUE_SIZE; i++)
+        l.dreml_buffer[i] = (float*)xcalloc(batch * l.outputs, sizeof(float));
+    #endif
+
     return l;
 }
 
@@ -386,9 +395,9 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
     int class_id, coord_id;
     int class_index = entry_index(l, b, n * l.w * l.h + j * l.w + i, l.coords + 1);
 
-    const float objectness = l.output[obj_index];
+    //const float objectness = l.output[obj_index];
 
-    l.delta[obj_index] = l.cls_normalizer * objectness;
+    l.delta[obj_index] = l.cls_normalizer * getBufferStdev(l.dreml_buffer, obj_index);
 
     for(class_id = 0; class_id < l.classes; ++class_id)
     {
@@ -396,19 +405,21 @@ void adjustYoloLossesDREML(const layer l, network_state state, int obj_index, in
 
         const float class_multiplier = (l.classes_multipliers) ? l.classes_multipliers[class_id] : 1.0f;
 
-        l.delta[index] = class_multiplier * objectness * l.output[index];
+        l.delta[index] = class_multiplier * getBufferStdev(l.dreml_buffer, index);
     }
 
     for(coord_id = 0; coord_id < l.coords; coord_id++)
     {
         int index = box_index + (coord_id * l.w * l.h);
 
-        l.delta[index] =  l.iou_normalizer * objectness;
+        l.delta[index] =  l.iou_normalizer * getBufferStdev(l.dreml_buffer, index);
 
+	/*
         if(coord_id < 2)
         {
             l.delta[index] *= logistic_gradient(l.output[index]);
         }
+	*/
     }
 }
 #endif
@@ -478,11 +489,15 @@ void forward_yolo_layer(const layer l, network_state state)
     }
 #endif
 
+    #ifdef CUSTOM_BACKPROP
+    memcpy((void*)l.dreml_buffer[*l.dreml_index], l.output, l.outputs * sizeof(float));
+    *l.dreml_index = (*l.dreml_index + 1) % QUEUE_SIZE;
+    #endif
+
     // delta is zeroed
     memset(l.delta, 0, l.outputs * l.batch * sizeof(float));
     if (!state.train) return;
 
-    /*
     #ifdef CUSTOM_BACKPROP
     for (b = 0; b < l.batch; ++b) {
         for (j = 0; j < l.h; ++j) {
@@ -497,7 +512,6 @@ void forward_yolo_layer(const layer l, network_state state)
     }
     return;
     #endif
-    */
 
     //float avg_iou = 0;
     float tot_iou = 0;
