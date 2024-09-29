@@ -5,7 +5,7 @@ This repository forks from darknet-nnpack and adds support for DREML functions. 
 * **IMG\_SEG**: Adds support for image segmentation as proposed [here](https://github.com/ArtyZe/yolo_segmentation), should be undefined for other applications
 * **DET\_THRESH**: Detection threshold used by custom loss functions of region\_layer and yolo\_layer
 
-If you have a question about this repository or a problem using modified darknet, you can contact Kamyar at kammirzazad@utexas.edu. The remainder of this README is same as the original repo.
+If you have a question about this repository or a problem using modified darknet, you can contact Kamyar at kammirzazad@utexas.edu. Note that, since Confu support for NNPACK is now deprecated, you can build [this fork](https://github.com/shizukachan/NNPACK) of NNPACK with CMake. The remainder of this README is same as the original repo.
 
 ![build](https://github.com/kammirzazad/darknet-nnpack-dreml/actions/workflows/build.yml/badge.svg)
 
